@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String,BigInteger ,Time,TIMESTAMP, DateTime, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, Integer, Float, String,BigInteger,Boolean ,Time,TIMESTAMP, DateTime, UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -410,21 +410,18 @@ class Users(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    first_name = Column(String(35))
-    last_name = Column(String(35))
-    email = Column(String(75))
-    username = Column(String(35))
-    password = Column(String(35))
-    role_id = Column(Integer, ForeignKey('roles.id'))
-    role = relationship('Roles', back_populates='users')
-
-
-class Roles(Base):
-    __tablename__ = 'roles'
-
-    id = Column(Integer, primary_key=True)
-    role_name = Column(String(35))
-    users = relationship('Users', back_populates='role')
+    first_name = Column(String)
+    last_name = Column(String)
+    username = Column(String)
+    password = Column(String)
+    email = Column(String)
+    avatar = Column(String)
+    creation_date = Column(DateTime)
+    last_access_date = Column(DateTime)
+    updated_at = Column(DateTime)
+    enabled = Column(Boolean)
+    line_token = Column(String)
+    line_code = Column(String)
 
 class Environment(Base):
     __tablename__ = "environment"

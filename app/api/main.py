@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from app.api.routes import backend_api, tariff, report, fusionsolar
+from app.api.routes import backend_api, tariff, report, fusionsolar ,auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +27,7 @@ app.add_middleware(
 
 router = APIRouter()
 
+router.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 router.include_router(backend_api.router, prefix="/api/dashboard", tags=["backend_api"])
 router.include_router(fusionsolar.router, prefix="/api/fusionsolar", tags=["fusionsolar"])
 router.include_router(tariff.router, prefix="/api/tariff", tags=["tariff"])
