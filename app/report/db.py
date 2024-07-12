@@ -2,9 +2,16 @@
 import time
 from app.core.models import MsStations, Tou, Tod, Device, DeviceType, Tariff, StationDay
 from sqlalchemy.sql import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import pendulum
 import logging
+
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -13,18 +20,22 @@ class DatabaseHandle:
     def __init__(self):
         pass
 
-    def get_tou_station(self, db: Session, _dt: datetime, station_code: int):
+    def get_tou_station(self, db: Session, period_dt: datetime, station_code: int):
         try:
-            dt_now = datetime(datetime.now().year, datetime.now().month, 1)
-            if _dt > dt_now:
-                query_datetime = dt_now.strftime('%Y-%m-%d')
-                unixdt_s = time.mktime(dt_now.timetuple())
-                shiftmonthly = _dt + timedelta(days=31)
+            this_month = datetime(datetime.now().year, datetime.now().month, 1)
+            if period_dt > this_month:
+                query_datetime = this_month.strftime('%Y-%m-%d')
+                dt_s = this_month
+                unixdt_s = time.mktime(this_month.timetuple())
+                shiftmonthly = pendulum.instance(this_month).add(months=1)
+                dt_e = shiftmonthly
                 unixdt_e = time.mktime(shiftmonthly.timetuple())
             else:
-                query_datetime = _dt.strftime('%Y-%m-%d')
-                unixdt_s = time.mktime(_dt.timetuple())
-                shiftmonthly = _dt + timedelta(days=31)
+                query_datetime = period_dt.strftime('%Y-%m-%d')
+                dt_s = period_dt
+                unixdt_s = time.mktime(period_dt.timetuple())
+                shiftmonthly = pendulum.instance(period_dt).add(months=1)
+                dt_e = shiftmonthly
                 unixdt_e = time.mktime(shiftmonthly.timetuple())
 
             station = db.query(MsStations.station_name, MsStations.capacity).filter(
@@ -42,7 +53,7 @@ class DatabaseHandle:
             station_day = [
                 {
                     'use_power': item.use_power,
-                    'collect_time': datetime.fromtimestamp(item.collect_time).strftime('%d-%m-%Y %H:%M:%S'),
+                    'timestamp': datetime.fromtimestamp(item.collect_time).strftime('%d-%m-%Y %H:%M:%S'),
                 }
                 for item in station_day_data
             ]
@@ -70,11 +81,8 @@ class DatabaseHandle:
                 raise ValueError("Tariff not found for the station")
 
             if tariff.name == "TOU_FIX_TIME" or tariff.name == "TOU":
-
-                bill = db.query(Tou).filter(
-                    func.DATE_TRUNC('month', Tou.on_date) == query_datetime,
-                    Tou.station_code == station_code
-                ).order_by(Tou.on_date.asc()).all()
+                print(dt_s,dt_e)
+                bill = db.query(Tou).filter(Tou.on_date >= dt_s, Tou.on_date < dt_e,Tou.station_code == station_code).order_by(Tou.on_date.asc()).all()
 
                 if not bill:
                     raise ValueError("Bill not found for the station")
@@ -85,10 +93,44 @@ class DatabaseHandle:
                         'offPeak': item.yield_off_peak if item.yield_off_peak else 0,
                         'onPeak': item.yield_on_peak if item.yield_on_peak else 0,
                         'total': item.yield_total if item.yield_total else 0,
-                        'consumption': next((sd['use_power'] for sd in station_day if sd['collect_time'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
+                        'consumption': next((sd['use_power'] for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0) 
                     }
                     for item in bill
                 ]
+
+                dates = [item['date'] for item in daily]
+                totals = [item['total'] for item in daily]
+                consumptions = [item['consumption'] for item in daily]
+                # Convert dates to datetime objects
+                dates = [datetime.strptime(date, '%d-%m-%Y') for date in dates]
+
+                # Plotting
+                plt.figure(figsize=(10, 5))
+                plt.plot(dates, totals, label='PV output (kWh)', color='blue', marker='o')
+                plt.plot(dates, consumptions, label='Total consumption (kWh)', color='orange', marker='o')
+                plt.xlabel('Day/Month/Year')
+                plt.ylabel('kWh')
+                plt.title('Daily Report')
+                plt.legend()
+                plt.grid(True)
+                plt.xticks(rotation=45)
+                plt.tight_layout()
+                bottom, top = plt.ylim()
+                plt.ylim(top=top+(top*0.1))
+                # Adding annotations
+                for i, (date, total) in enumerate(zip(dates, totals)):
+                    plt.annotate(f'{total}', (date, total), textcoords="offset points", xytext=(0,5), ha='center',va='bottom',fontsize=8,rotation=45)
+
+                for i, (date, consumption) in enumerate(zip(dates, consumptions)):
+                    plt.annotate(f'{consumption}', (date, consumption), textcoords="offset points", xytext=(0,5), ha='center',va='bottom',fontsize=8,rotation=45)
+
+                # Save to buffer
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png')
+                plt.close()
+                buffer.seek(0)
+                img_base64 = base64.b64encode(buffer.read()).decode()
+                buffer.close()
                 offPeak = sum(item['offPeak'] for item in daily)
                 onPeak = sum(item['onPeak'] for item in daily)
                 offPeakRateDsc = tariff.tou_off_pk_rate_max - (tariff.tou_off_pk_rate_max * tariff.dsc)
@@ -120,7 +162,8 @@ class DatabaseHandle:
                     'total': round(sum(item['total'] for item in daily), 2),
                     'consumption': round(sum(item['consumption'] for item in daily), 2),
                     'daily': daily,
-                    'devices': devices
+                    'devices': devices,
+                    'chart': img_base64
                 }
 
             elif tariff.name == "TOD":
@@ -208,7 +251,7 @@ class DatabaseHandle:
             else:
                 raise ValueError("Unknown tariff type")
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             db.rollback()
             logging.error(f"Error: {e}")
             raise
