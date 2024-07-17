@@ -423,23 +423,5 @@ class Users(Base):
     line_token = Column(String)
     line_code = Column(String)
 
-class Environment(Base):
-    __tablename__ = "environment"
-
-    id = Column(Integer, primary_key=True)
-    station_code = Column(Integer, ForeignKey("ms_stations.station_code"), nullable=False)
-    time = Column(DateTime(timezone=True), nullable=True)
-    rh = Column(Float, nullable=True) 
-    tc = Column(Float, nullable=True)  
-    rain = Column(Float, nullable=True)
-    cond_th = Column(String, nullable=True) 
-    cond_en = Column(String, nullable=True)  
-    irr = Column(Float, nullable=True) 
-    wind_speed = Column(Float, nullable=True)
-    wind_direc = Column(Float, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('station_code', name='environment_station_code_unique'),
-    )
 
 Base.metadata.create_all(engine)

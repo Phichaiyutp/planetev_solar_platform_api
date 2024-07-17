@@ -3,13 +3,14 @@ import json
 import re
 import requests
 from sqlalchemy.orm import Session
-from app.core.models import Inverter, Station, Device, StationYear, Tou, Tariff,MsStations,Energy,SensorEnergy,Environment
-from app.core.db import get_db
+from app.core.models import Inverter, Station, Device, StationYear, Tou, Tariff, MsStations, Energy, SensorEnergy
+from app.core.db import get_db, get_all_cache, get_cache, set_cache, delete_cache
 from sqlalchemy.sql import func
 from fastapi import APIRouter, Depends, HTTPException
 from cachetools.func import ttl_cache
 
 router = APIRouter()
+
 
 def get_station(db: Session) -> list:
     try:
@@ -22,40 +23,63 @@ def get_station(db: Session) -> list:
             MsStations.station_name,
             MsStations.station_address
         ).all()
-        
+
         payload = []
 
         for ms_station in ms_stations:
-            url = f"https://api.openweathermap.org/data/2.5/weather?lat={ms_station.latitude}&lon={ms_station.longitude}&appid=b547177637945380e8945526d457fc06"
-            weather_data = requests.get(url)
-            if weather_data.status_code == 200:
-                weather = json.loads(weather_data.text)
-                cond_id = weather['weather'][0]['id']
-                cond_en = weather['weather'][0]['main']
-                description = weather['weather'][0]['description']
-                tc = weather['main']['temp']/10
-                rh = weather['main']['humidity']
-                weather_icon = weather['weather'][0]['icon']
-                cond_icon = f"https://openweathermap.org/img/wn/{weather_icon}@2x.png"
-            else :
-                cond_id = 0
-                cond_en = "Unknown"
-                description = "Unknown"
-                tc = 0
-                rh = 0
-                cond_icon = "Unknown"
-            station_name_short = re.sub(r' รหัส \d+', '', ms_station.station_name) if "รหัส" in ms_station.station_name else ms_station.station_name
-            station = db.query(Station.day_power, Station.total_power, Station.real_health_state).filter(Station.station_code == ms_station.station_code).first()
-            if station.real_health_state == 1 :
+            weather_cache = get_cache(F'weather_{ms_station.station_code}')
+            if weather_cache:
+                cond_id = weather_cache.get('cond_id')
+                cond_en = weather_cache.get('cond_en')
+                description = weather_cache.get('description')
+                tc = weather_cache.get('tc')
+                rh = weather_cache.get('rh')
+                cond_icon = weather_cache.get('cond_icon')
+            else:
+                url = f"https://api.openweathermap.org/data/2.5/weather?lat={ms_station.latitude}&lon={
+                    ms_station.longitude}&appid=b547177637945380e8945526d457fc06"
+                weather_data = requests.get(url)
+                if weather_data.status_code == 200:
+                    weather = weather_data.json()
+                    cond_id = weather['weather'][0]['id']
+                    cond_en = weather['weather'][0]['main']
+                    description = weather['weather'][0]['description']
+                    tc = weather['main']['temp'] / 10
+                    rh = weather['main']['humidity']
+                    weather_icon = weather['weather'][0]['icon']
+                    cond_icon = f"https://openweathermap.org/img/wn/{
+                        weather_icon}@2x.png"
+                    weather_dict = {
+                        'cond_id': cond_id,
+                        'cond_en': cond_en,
+                        'description': description,
+                        'tc': tc,
+                        'rh': rh,
+                        'cond_icon': cond_icon,
+                    }
+                    set_cache(F'weather_{ms_station.station_code}', weather_dict, ttl=3600)
+                else:
+                    cond_id = 0
+                    cond_en = "Unknown"
+                    description = "Unknown"
+                    tc = 0
+                    rh = 0
+                    cond_icon = "Unknown"
+            station_name_short = re.sub(
+                r' รหัส \d+', '', ms_station.station_name) if "รหัส" in ms_station.station_name else ms_station.station_name
+            station = db.query(Station.day_power, Station.total_power, Station.real_health_state).filter(
+                Station.station_code == ms_station.station_code).first()
+            if station.real_health_state == 1:
                 station_status = "Offline"
-            elif station.real_health_state == 2 :
+            elif station.real_health_state == 2:
                 station_status = "Faulty"
-            elif station.real_health_state == 3 :
+            elif station.real_health_state == 3:
                 station_status = "Online"
-            else :
+            else:
                 station_status = "Unknown"
-            station_year = db.query(StationYear.reduction_total_co2).filter(StationYear.station_code == ms_station.station_code).first()
-            realtime_pv_data = db.query(Inverter.station_code, Inverter.active_power,Inverter.total_cap).filter(
+            station_year = db.query(StationYear.reduction_total_co2).filter(
+                StationYear.station_code == ms_station.station_code).first()
+            realtime_pv_data = db.query(Inverter.station_code, Inverter.active_power, Inverter.total_cap).filter(
                 Inverter.station_code == ms_station.station_code
             ).order_by(Inverter.timestamp.desc()).first()
             realtime_pv = realtime_pv_data.active_power if realtime_pv_data and realtime_pv_data.active_power is not None else 0
@@ -63,14 +87,17 @@ def get_station(db: Session) -> list:
             energy_data = db.query(Energy.station_code, Energy.active_power).filter(
                 Energy.station_code == ms_station.station_code
             ).order_by(Energy.timestamp.desc()).first()
-            if energy_data :
-                realtime_grid = abs(energy_data.active_power) if energy_data and energy_data.active_power is not None else 0
+            if energy_data:
+                realtime_grid = abs(
+                    energy_data.active_power) if energy_data and energy_data.active_power is not None else 0
             else:
                 sensor_energy_data = db.query(SensorEnergy.station_code, SensorEnergy.active_power).filter(
                     SensorEnergy.station_code == ms_station.station_code
                 ).order_by(SensorEnergy.timestamp.desc()).first()
-                realtime_grid = abs(sensor_energy_data.active_power) if sensor_energy_data and sensor_energy_data.active_power is not None else 0
-            tou_data = db.query(Tou.yield_off_peak, Tou.yield_on_peak, Tou.yield_total).filter(Tou.station_code == ms_station.station_code).all()
+                realtime_grid = abs(
+                    sensor_energy_data.active_power) if sensor_energy_data and sensor_energy_data.active_power is not None else 0
+            tou_data = db.query(Tou.yield_off_peak, Tou.yield_on_peak, Tou.yield_total).filter(
+                Tou.station_code == ms_station.station_code).all()
             total_on_peak = sum(item.yield_on_peak or 0 for item in tou_data)
             total_off_peak = sum(item.yield_off_peak or 0 for item in tou_data)
 
@@ -78,12 +105,15 @@ def get_station(db: Session) -> list:
                 .filter((Tariff.name == "TOU_FIX_TIME") | (Tariff.name == "TOU")) \
                 .first()
 
-            offPeakRateDsc = tariff.tou_off_pk_rate_max - (tariff.tou_off_pk_rate_max * tariff.dsc)
-            onPeakRateDsc = tariff.tou_on_pk_rate_max - (tariff.tou_on_pk_rate_max * tariff.dsc)
-            revenue_on = (total_on_peak * onPeakRateDsc) + (total_on_peak * tariff.ft)
-            revenue_off = (total_off_peak * offPeakRateDsc) + (total_off_peak * tariff.ft)
+            offPeakRateDsc = tariff.tou_off_pk_rate_max - \
+                (tariff.tou_off_pk_rate_max * tariff.dsc)
+            onPeakRateDsc = tariff.tou_on_pk_rate_max - \
+                (tariff.tou_on_pk_rate_max * tariff.dsc)
+            revenue_on = (total_on_peak * onPeakRateDsc) + \
+                (total_on_peak * tariff.ft)
+            revenue_off = (total_off_peak * offPeakRateDsc) + \
+                (total_off_peak * tariff.ft)
             revenue_total = revenue_on + revenue_off
-
 
             payload.append({
                 "timestamp": datetime.now().strftime('%d-%m-%Y %H:%M:%S'),
@@ -97,9 +127,9 @@ def get_station(db: Session) -> list:
                 "station_address": ms_station.station_address,
                 "station_name_short": station_name_short,
                 "condEn": cond_en,
-                "condDescription" : description, 
+                "condDescription": description,
                 "cond_id": cond_id,
-                "cond_icon" : cond_icon,
+                "cond_icon": cond_icon,
                 "rh": round(rh, 2),
                 "tc": round(tc, 2),
                 "realtime_pv": round(realtime_pv, 2),
@@ -118,7 +148,8 @@ def get_station(db: Session) -> list:
         return payload
     except Exception as e:
         raise ValueError(f"Get station Error: {e}")
-    
+
+
 def get_overall(db: Session) -> dict:
     try:
         devices = db.query(Device.esn_code).filter(
@@ -142,7 +173,8 @@ def get_overall(db: Session) -> dict:
         co_two = sum(item.reduction_total_co2 for item in co_two_data)
         station_all = db.query(Station.total_power).all()
         # total_string_capacity = sum(item.total_power for item in station_all)
-        tou_data = db.query(Tou.yield_off_peak, Tou.yield_on_peak, Tou.yield_total).all()
+        tou_data = db.query(Tou.yield_off_peak,
+                            Tou.yield_on_peak, Tou.yield_total).all()
         total_off_peak = 0
         total_on_peak = 0
         energy_overall = 0
@@ -155,10 +187,14 @@ def get_overall(db: Session) -> dict:
             .filter((Tariff.name == "TOU_FIX_TIME") | (Tariff.name == "TOU")) \
             .first()
 
-        offPeakRateDsc = tariff.tou_off_pk_rate_max - (tariff.tou_off_pk_rate_max * tariff.dsc)
-        onPeakRateDsc = tariff.tou_on_pk_rate_max - (tariff.tou_on_pk_rate_max * tariff.dsc)
-        revenue_on = (total_on_peak * onPeakRateDsc) + (total_on_peak * tariff.ft)
-        revenue_off = (total_off_peak * offPeakRateDsc) + (total_off_peak * tariff.ft)
+        offPeakRateDsc = tariff.tou_off_pk_rate_max - \
+            (tariff.tou_off_pk_rate_max * tariff.dsc)
+        onPeakRateDsc = tariff.tou_on_pk_rate_max - \
+            (tariff.tou_on_pk_rate_max * tariff.dsc)
+        revenue_on = (total_on_peak * onPeakRateDsc) + \
+            (total_on_peak * tariff.ft)
+        revenue_off = (total_off_peak * offPeakRateDsc) + \
+            (total_off_peak * tariff.ft)
         revenue_total = revenue_on + revenue_off
 
         payload = {
@@ -178,28 +214,31 @@ def get_overall(db: Session) -> dict:
     except Exception as e:
         raise ValueError("Get overall Error")
 
-# Configure caching with a TTL (Time To Live) of 300 seconds (5 minutes)
-@ttl_cache(maxsize=128, ttl=300)
-def cached_get_overall(db: Session) -> dict:
-    return get_overall(db)
-
-@ttl_cache(maxsize=128, ttl=300)
-def cached_get_station(db: Session) -> dict:
-    return get_station(db)
 
 @router.get("/overall")
 async def read_data(db: Session = Depends(get_db)):
     try:
-        payload = cached_get_overall(db)
+        overall_cache = get_cache('overall')
+        if overall_cache:
+            return overall_cache
+
+        payload = get_overall(db)
+        set_cache('overall', payload)
         return payload
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal Server Error {e}")
 
+
 @router.get("/station")
 async def read_data(db: Session = Depends(get_db)):
     try:
-        payload = cached_get_station(db)
+        station_cache = get_cache('station')
+        if station_cache:
+            return station_cache
+
+        payload = get_station(db)
+        set_cache('station', payload)
         return payload
     except Exception as e:
         raise HTTPException(

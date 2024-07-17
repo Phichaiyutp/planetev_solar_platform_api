@@ -1,2 +1,1 @@
-python -m uvicorn app.api.main:app --reload --port 5000
-"# planetev_solar_platform_api" 
+# python -m uvicorn app.api.main:app --host 0.0.0.0 --reload --port 5000

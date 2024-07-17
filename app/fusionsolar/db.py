@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-from app.core.models import Device, Inverter, Energy, SensorEnergy, Station, MsStations, StationHour, StationDay, StationYear, StationMonth, Environment
+from app.core.models import Device, Inverter, Energy, SensorEnergy, Station, MsStations, StationHour, StationDay, StationYear, StationMonth
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -484,52 +484,4 @@ class DatabaseHandle:
             db.rollback()
             logging.error(f"Error ms_station insert or update: {e}")
 
-    def getLocation(self, db: Session):
-        try:
-            ms_stations = db.query(
-                MsStations.latitude, MsStations.longitude, MsStations.station_code).all()
-            payload = []
-            for ms_station in ms_stations:
-                payload.append({
-                    "latitude": ms_station[0],
-                    "longitude": ms_station[1],
-                    "station_code": ms_station[2],
-                })
-            return payload
-        except SQLAlchemyError as e:
-            db.rollback()
-            logging.error(f"Error selete location: {e}")
 
-    def insertEnvironment(self, data_env, db: Session):
-        try:
-            env = insert(Environment).values(
-                station_code=data_env['station_code'],
-                time=data_env['time'],
-                rh=data_env['rh'],
-                tc=data_env['tc'],
-                rain=data_env['rain'],
-                cond_th=data_env['cond_th'],
-                cond_en=data_env['cond_en'],
-                wind_speed=data_env['wind_speed'],
-                wind_direc=data_env['wind_direc'],
-            )
-            env = env.on_conflict_do_update(
-                constraint='station_code',
-                set_=dict(
-                    time=data_env['time'],
-                    rh=data_env['rh'],
-                    tc=data_env['tc'],
-                    rain=data_env['rain'],
-                    cond_th=data_env['cond_th'],
-                    cond_en=data_env['cond_en'],
-                    wind_speed=data_env['wind_speed'],
-                    wind_direc=data_env['wind_direc'],
-                )
-            )
-            db.execute(env)
-            db.commit()
-            logging.info("Environment inserted or updated successfully!")
-
-        except SQLAlchemyError as e:
-            db.rollback()
-            logging.error(f"Error environment insert or update: {e}")

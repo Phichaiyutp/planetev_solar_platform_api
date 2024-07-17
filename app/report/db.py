@@ -81,7 +81,6 @@ class DatabaseHandle:
                 raise ValueError("Tariff not found for the station")
 
             if tariff.name == "TOU_FIX_TIME" or tariff.name == "TOU":
-                print(dt_s,dt_e)
                 bill = db.query(Tou).filter(Tou.on_date >= dt_s, Tou.on_date < dt_e,Tou.station_code == station_code).order_by(Tou.on_date.asc()).all()
 
                 if not bill:
