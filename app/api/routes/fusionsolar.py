@@ -36,7 +36,7 @@ async def scheduler_callback():
     if not scheduler.running:
         scheduler.start()
 
-@router.get("/test")
+""" @router.get("/test")
 async def read_data():
     try:
         db: Session = next(get_db())
@@ -46,4 +46,4 @@ async def read_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
     finally:
-        db.close()
+        db.close() """
