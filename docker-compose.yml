@@ -27,6 +27,8 @@ services:
       POSTGRES_PASSWORD: pca@1234
     volumes:
       - solar_platform:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     networks:
       - solar_network
 
