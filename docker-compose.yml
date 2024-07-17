@@ -31,9 +31,9 @@ services:
       - solar_network
 
   cache_server:
-    image: 	redis:latest
+    image: redis:latest
     ports:
-      - "6379:6379" 
+      - "6379:6379"
       - "8001:8001"
     networks:
       - solar_network
