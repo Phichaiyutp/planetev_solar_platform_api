@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import json
 import re
 import requests
@@ -8,9 +9,10 @@ from app.core.db import get_db, get_all_cache, get_cache, set_cache, delete_cach
 from sqlalchemy.sql import func
 from fastapi import APIRouter, Depends, HTTPException
 from cachetools.func import ttl_cache
+from dotenv import load_dotenv
 
 router = APIRouter()
-
+load_dotenv()
 
 def get_station(db: Session) -> list:
     try:
@@ -36,8 +38,9 @@ def get_station(db: Session) -> list:
                 rh = weather_cache.get('rh')
                 cond_icon = weather_cache.get('cond_icon')
             else:
+                OPEN_WEATHER_API = os.getenv('OPEN_WEATHER_API')
                 url = f"https://api.openweathermap.org/data/2.5/weather?lat={ms_station.latitude}&lon={
-                    ms_station.longitude}&appid=b547177637945380e8945526d457fc06"
+                    ms_station.longitude}&appid={OPEN_WEATHER_API}"
                 weather_data = requests.get(url)
                 if weather_data.status_code == 200:
                     weather = weather_data.json()

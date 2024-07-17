@@ -1,0 +1,45 @@
+services:
+  solar_api:
+    image: planetev_solar_platform_api:0.0.2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 5000
+    ports:
+      - "5000:5000"
+    restart: always
+    environment:
+      FUSIONSOLAR_USER: api_test
+      FUSIONSOLAR_PASS: pca@1234
+      CACHE_SERVER_URL: cache_server
+      CACHE_SERVER_PORT: 6379
+      DATABASE_URL: "postgresql+psycopg2://postgres:pca%401234@solar_db:5432/postgres"
+      OPEN_WEATHER_API: "b547177637945380e8945526d457fc06"
+      JWT_SECRET_KEY: "SVNaxFHF2QmME7N4y@9[(>q>3_~,%]_AV{i'rGS0,a(g#p4u%{toq(_=vHe_A*o"
+    networks:
+      - solar_network
+
+  solar_db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pca@1234
+    volumes:
+      - solar_platform:/var/lib/postgresql/data
+    networks:
+      - solar_network
+
+  cache_server:
+    image: 	redis/redis-stack:latest
+    ports:
+      - "6379:6379" 
+      - "8001:8001"
+    networks:
+      - solar_network
+
+networks:
+  solar_network:
+
+volumes:
+  solar_platform:
