@@ -26,8 +26,7 @@ async def summary_report(year: int, month: int):
         else:
             report_cache = get_cache(f'summary_report_{period_dt.strftime("%m_%Y")}')
         if report_cache:
-            pass
-            #return report_cache
+            return report_cache
 
         data = db_handle.get_tou_summary(db, period_dt)
         if data:
