@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String, BigInteger, Boolean, Time, TIMESTAMP, DateTime, ForeignKey
-from datetime import datetime, UTC
+from sqlalchemy import Column, Integer, Float, String, BigInteger, Boolean, Time, TIMESTAMP, DateTime, ForeignKey, func
 from app.core.db import Base, engine
 
 
@@ -26,7 +25,7 @@ class Device(Base):
     installation_date = Column(DateTime)
     exd_warranty = Column(DateTime)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class Tariff(Base):
@@ -48,7 +47,7 @@ class Tariff(Base):
     tou_off_pk_time_to = Column(Time)
     ft = Column(Float)
     dsc = Column(Float)
-    updated_at = Column(TIMESTAMP, default=datetime.now(UTC))
+    updated_at = Column(TIMESTAMP, default=func.now(), nullable=False)
     volt_rate_min = Column(String)
     volt_rate_mid = Column(String)
     volt_rate_max = Column(String)
@@ -58,7 +57,7 @@ class Energy(Base):
     __tablename__ = 'energy'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
     dev_id = Column(BigInteger)
     active_cap = Column(Float)
     power_factor = Column(Float)
@@ -108,7 +107,7 @@ class SensorEnergy(Base):
     __tablename__ = 'sensor_energy'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
     dev_id = Column(BigInteger)
     meter_status = Column(Integer)
     active_cap = Column(Float)
@@ -160,7 +159,7 @@ class Inverter(Base):
     __tablename__ = 'inverter'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
     dev_id = Column(BigInteger)
     pv26_i = Column(Float)
     pv2_u = Column(Float)
@@ -265,7 +264,7 @@ class MsInverters(Base):
     last_active_power = Column(Float)
     last_update = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class MsStations(Base):
@@ -279,7 +278,7 @@ class MsStations(Base):
     station_address = Column(String)
     station_code = Column(Integer, unique=True, nullable=False)
     station_name = Column(String)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class Station(Base):
@@ -295,7 +294,7 @@ class Station(Base):
     station_code = Column(Integer, unique=True)
     station_name = Column(String)
     station_address = Column(String)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class StationHour(Base):
@@ -309,7 +308,7 @@ class StationHour(Base):
     ongrid_power = Column(Float)
     power_profit = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class StationDay(Base):
@@ -329,7 +328,7 @@ class StationDay(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class StationMonth(Base):
@@ -349,7 +348,7 @@ class StationMonth(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class StationYear(Base):
@@ -370,7 +369,7 @@ class StationYear(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class Tou(Base):
@@ -383,7 +382,7 @@ class Tou(Base):
     yield_total = Column(Float)
     revenue = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class Tod(Base):
@@ -394,7 +393,7 @@ class Tod(Base):
     yield_total = Column(Float)
     revenue = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+    timestamp = Column(TIMESTAMP, default=func.now(), nullable=False)
 
 
 class Users(Base):

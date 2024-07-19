@@ -24,8 +24,7 @@ db_handle = DatabaseHandle()
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-async def scheduler_callback():
-    db: Session = next(get_db())
+async def scheduler_callback(db:Session):
     device_list = db_handle.get_device(db)
     tariff(device_list,db)
 

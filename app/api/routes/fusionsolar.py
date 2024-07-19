@@ -14,8 +14,7 @@ scheduler.start()
 scheduler = AsyncIOScheduler()
 
 
-async def scheduler_callback():
-    db: Session = next(get_db())
+async def scheduler_callback(db:Session):
     api_handle.DevRealKpi(db)
     api_handle.StationRealKpi(db)
     api_handle.KpiStationHour(db)
