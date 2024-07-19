@@ -1,6 +1,6 @@
 services:
   solar_api:
-    image: planetev_solar_platform_api:0.0.2
+    image: planetev_solar_platform_api:0.0.1
     build:
       context: .
       dockerfile: Dockerfile

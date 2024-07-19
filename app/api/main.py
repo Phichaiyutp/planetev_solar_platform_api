@@ -9,8 +9,8 @@ from app.api.routes import backend_api, tariff, report, fusionsolar ,auth
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db: Session = next(get_db())
-    await fusionsolar.scheduler_callback(db)
-    await tariff.scheduler_callback(db)
+    """ await fusionsolar.scheduler_callback(db)
+    await tariff.scheduler_callback(db) """
     yield 
     db.close() 
 

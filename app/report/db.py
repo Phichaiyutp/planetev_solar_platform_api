@@ -57,6 +57,9 @@ class DatabaseHandle:
                 Tariff.tou_off_pk_rate_max,
                 Tariff.tod_rate_min,
                 Tariff.tod_rate_mid,
+                Tariff.tod_rate_max,
+                Tariff.tod_rate_min,
+                Tariff.tod_rate_mid,
                 Tariff.tod_rate_max
             ).join(Device).filter(Device.dev_type_id == 1)
 
@@ -79,10 +82,12 @@ class DatabaseHandle:
                 return self.prepare_payload(this_period, end_day, months_th, stations_data, error)
 
             for tariff_item in tariffs:
-                if tariff_item.name in ["TOU_FIX_TIME", "TOU"]:
-                    ms_station = db.query(MsStations.station_name).filter(
-                        MsStations.station_code == tariff_item.station_code).first()
+                ms_station = db.query(MsStations.station_name).filter(
+                    MsStations.station_code == tariff_item.station_code).first()
 
+                amount = 0.0
+
+                if tariff_item.name in ["TOU_FIX_TIME", "TOU"]:
                     tou = db.query(
                         Tou.station_code,
                         func.sum(Tou.yield_off_peak).label('yield_off_peak'),
@@ -112,13 +117,67 @@ class DatabaseHandle:
                                     (offPeak * tariff_item.ft)
                     amount = onPeakAmount + offPeakAmount
 
-                    stations_data.append({
-                        'stationId': tariff_item.station_code,
-                        'name': ms_station.station_name if ms_station else 'Unknown',
-                        'yield': round(total_yield, 2),
-                        'amount': round(amount, 2),
-                        'details': self.get_tou_station(db, period_dt, tariff_item.station_code)
-                    })
+                if tariff_item.name in ["TOD"]:
+                    tod = db.query(
+                        Tod.station_code,
+                        func.sum(Tod.yield_total).label('yield_total')
+                    ).filter(
+                        Tod.on_date >= dt_s,
+                        Tod.on_date < dt_e,
+                        Tod.station_code == tariff_item.station_code
+                    ).group_by(Tod.station_code).first()
+
+                    if not tod:
+                        error.append({'msg': f'Bill not found for the station with code {
+                            tariff_item.station_code}'})
+                        continue
+                    total = tod.yield_total
+                    eRateMin = tariff_item.tod_rate_min
+                    eRateMid = tariff_item.tod_rate_mid
+                    eRateMax = tariff_item.tod_rate_max
+                    eRateMinDsc = round(eRateMin -
+                                        (eRateMin * tariff_item.dsc), 4)
+                    eRateMidDsc = round(eRateMid -
+                                        (eRateMid * tariff_item.dsc), 4)
+                    eRateMaxDsc = round(eRateMax -
+                                        (eRateMax * tariff_item.dsc), 4)
+                    eRateMinTotal = 0
+                    eRateMidTotal = 0
+                    eRateMaxTotal = 0
+                    eRateMinAmount = 0
+                    eRateMidAmount = 0
+                    eRateMaxAmount = 0
+                    if total <= 150:
+                        eRateMinTotal = total
+                        eRateMinAmount = (eRateMinTotal * eRateMinDsc) + \
+                            (eRateMinTotal * tariff_item.ft)
+                    elif 150 < total <= 400:
+                        eRateMinTotal = 150
+                        eRateMidTotal = total - 150
+                        eRateMinAmount = (150 * eRateMidDsc) + \
+                            (eRateMinTotal * tariff_item.ft)
+                        eRateMidAmount = (eRateMidTotal * eRateMidDsc) + \
+                            (eRateMidTotal * tariff_item.ft)
+                    elif total > 400:
+                        eRateMinTotal = 150
+                        eRateMidTotal = 250
+                        eRateMaxTotal = total - 250
+                        eRateMinAmount = (eRateMinTotal * eRateMinDsc) + \
+                            (eRateMinTotal * tariff_item.ft)
+                        eRateMidAmount = (eRateMidTotal * eRateMidDsc) + \
+                            (eRateMidTotal * tariff_item.ft)
+                        eRateMaxAmount = (eRateMaxTotal * eRateMaxDsc) + \
+                            (eRateMaxTotal * tariff_item.ft)
+
+                    amount = eRateMinAmount + eRateMidAmount + eRateMaxAmount
+
+                stations_data.append({
+                    'stationId': tariff_item.station_code,
+                    'name': ms_station.station_name if ms_station else 'Unknown',
+                    'yield': round(total_yield, 2),
+                    'amount': round(amount, 2),
+                    'details': self.get_tou_station(db, period_dt, tariff_item.station_code)
+                })
 
             return self.prepare_payload(this_period, end_day, months_th, stations_data, error)
 
@@ -271,7 +330,7 @@ class DatabaseHandle:
                     'project': 'ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา (Solar RoofTop Syatem)',
                     'location': station.station_name,
                     'preparedBy': 'Input From Frontend',
-                    'capacity': station.capacity,
+                    'capacity': round(station.capacity, 2),
                     'summaryDateForm': daily[0]['date'] if daily else None,
                     'summaryDateTo': daily[-1]['date'] if daily else None,
                     'voltRate': tariff.volt_rate_max,
@@ -356,7 +415,7 @@ class DatabaseHandle:
                     'project': 'ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา (Solar RoofTop Syatem)',
                     'location': station.station_name,
                     'preparedBy': 'Input From Frontend',
-                    'capacity': station.capacity,
+                    'capacity': round(station.capacity, 2),
                     'summaryDateForm': daily[0]['date'] if daily else None,
                     'summaryDateTo': daily[-1]['date'] if daily else None,
                     'voltRate': tariff.volt_rate_max,

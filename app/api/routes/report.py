@@ -43,9 +43,9 @@ async def summary_report(year: int, month: int, station: Optional[str] = None):
         if data:
             if not 'error' in data:
                 # 1 day or 30 days
-                cache_duration = 86400 if this_month <= month and this_year == year else 2592000
+                """ cache_duration = 86400 if this_month <= month and this_year == year else 2592000
                 set_cache(cache_key_current if this_month <= month and this_year ==
-                    year else cache_key_period, data, cache_duration)
+                    year else cache_key_period, data, cache_duration) """
             return data
         else:
             raise Exception("Summary report not found")
