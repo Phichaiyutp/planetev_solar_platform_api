@@ -1,28 +1,12 @@
-from sqlalchemy import Column, Integer, Float, String,BigInteger,Boolean ,Time,TIMESTAMP, DateTime, UniqueConstraint, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.core.db import Base,engine
+from sqlalchemy import Column, Integer, Float, String, BigInteger, Boolean, Time, TIMESTAMP, DateTime, ForeignKey
+from datetime import datetime, UTC
+from app.core.db import Base, engine
 
-# Define your SQLAlchemy models
-class Config(Base):
-    __tablename__ = 'config'
-
-    id = Column(Integer, primary_key=True)
-    value_name = Column(String, nullable=False)
-    value = Column(String)
-    data_type = Column(String)
-    expression = Column(String)
-    description = Column(String)
-    group_name = Column(String)
-    timestamp = Column(DateTime, nullable=True)
-    data_type_code = Column(Integer, nullable=False)
 
 class DeviceType(Base):
     __tablename__ = 'device_types'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     dev_type_id = Column(Integer, unique=True)
     dev_type_name = Column(String)
 
@@ -30,7 +14,7 @@ class DeviceType(Base):
 class Device(Base):
     __tablename__ = 'devices'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     tariff_type = Column(Integer, ForeignKey("tariff.id"))
     esn_code = Column(String)
     dev_id = Column(BigInteger, nullable=False, unique=True)
@@ -39,15 +23,15 @@ class Device(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     software_version = Column(String)
-    installation_date = Column(DateTime) 
-    exd_warranty = Column(DateTime) 
+    installation_date = Column(DateTime)
+    exd_warranty = Column(DateTime)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
 
 
 class Tariff(Base):
     __tablename__ = 'tariff'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     tod_rate_min = Column(Float)
     tod_rate_mid = Column(Float)
@@ -64,7 +48,7 @@ class Tariff(Base):
     tou_off_pk_time_to = Column(Time)
     ft = Column(Float)
     dsc = Column(Float)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.now(UTC))
     volt_rate_min = Column(String)
     volt_rate_mid = Column(String)
     volt_rate_max = Column(String)
@@ -73,8 +57,8 @@ class Tariff(Base):
 class Energy(Base):
     __tablename__ = 'energy'
 
-    id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, default=datetime.now())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
     dev_id = Column(BigInteger)
     active_cap = Column(Float)
     power_factor = Column(Float)
@@ -118,15 +102,13 @@ class Energy(Base):
     positive_reactive_valley = Column(Float)
     sn = Column(String)
     station_code = Column(Integer)
-    __table_args__ = (
-        UniqueConstraint('dev_id', 'sn', name='energy_dev_id_sn_unique'),
-    )
+
 
 class SensorEnergy(Base):
     __tablename__ = 'sensor_energy'
 
-    id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, default=datetime.now())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
     dev_id = Column(BigInteger)
     meter_status = Column(Integer)
     active_cap = Column(Float)
@@ -172,121 +154,124 @@ class SensorEnergy(Base):
     positive_reactive_valley = Column(Float)
     sn = Column(String)
     station_code = Column(Integer)
-    
+
+
 class Inverter(Base):
     __tablename__ = 'inverter'
 
-    id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, default=datetime.now())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
     dev_id = Column(BigInteger)
-    pv26_i	=	Column(Float)
-    pv2_u	=	Column(Float)
-    pv28_i	=	Column(Float)
-    pv4_u	=	Column(Float)
-    pv22_i	=	Column(Float)
-    power_factor	=	Column(Float)
-    pv6_u	=	Column(Float)
-    mppt_total_cap	=	Column(Float)
-    pv24_i	=	Column(Float)
-    pv8_u	=	Column(Float)
-    open_time	=	Column(BigInteger)
-    pv22_u	=	Column(Float)
-    a_i	=	Column(Float)
-    pv24_u	=	Column(Float)
-    c_i	=	Column(Float)
-    mppt_9_cap	=	Column(Float)
-    pv20_u	=	Column(Float)
-    pv19_u	=	Column(Float)
-    pv15_u	=	Column(Float)
-    a_u	=	Column(Float)
-    reactive_power	=	Column(Float)
-    pv17_u	=	Column(Float)
-    c_u	=	Column(Float)
-    mppt_8_cap	=	Column(Float)
-    pv20_i	=	Column(Float)
-    pv15_i	=	Column(Float)
-    efficiency	=	Column(Float)
-    pv17_i	=	Column(Float)
-    pv11_i	=	Column(Float)
-    pv13_i	=	Column(Float)
-    pv11_u	=	Column(Float)
-    mppt_power	=	Column(Float)
-    pv13_u	=	Column(Float)
-    run_state	=	Column(Float)
-    close_time	=	Column(BigInteger)
-    pv19_i	=	Column(Float)
-    mppt_7_cap	=	Column(Float)
-    mppt_5_cap	=	Column(Float)
-    pv27_u	=	Column(Float)
-    pv2_i	=	Column(Float)
-    active_power	=	Column(Float)
-    pv4_i	=	Column(Float)
-    pv6_i	=	Column(Float)
-    pv8_i	=	Column(Float)
-    mppt_6_cap	=	Column(Float)
-    pv27_i	=	Column(Float)
-    pv1_u	=	Column(Float)
-    pv3_u	=	Column(Float)
-    pv23_i	=	Column(Float)
-    pv5_u	=	Column(Float)
-    pv25_i	=	Column(Float)
-    pv7_u	=	Column(Float)
-    pv23_u	=	Column(Float)
-    inverter_state	=	Column(Integer)
-    pv9_u	=	Column(Float)
-    pv25_u	=	Column(Float)
-    total_cap	=	Column(Float)
-    b_i	=	Column(Float)
-    mppt_3_cap	=	Column(Float)
-    pv21_u	=	Column(Float)
-    mppt_10_cap	=	Column(Float)
-    pv16_u	=	Column(Float)
-    pv18_u	=	Column(Float)
-    temperature	=	Column(Float)
-    bc_u	=	Column(Float)
-    b_u	=	Column(Float)
-    pv21_i	=	Column(Float)
-    elec_freq	=	Column(Float)
-    mppt_4_cap	=	Column(Float)
-    pv16_i	=	Column(Float)
-    pv18_i	=	Column(Float)
-    day_cap	=	Column(Float)
-    pv12_i	=	Column(Float)
-    pv14_i	=	Column(Float)
-    pv12_u	=	Column(Float)
-    mppt_1_cap	=	Column(Float)
-    pv14_u	=	Column(Float)
-    pv10_u	=	Column(Float)
-    pv26_u	=	Column(Float)
-    pv1_i	=	Column(Float)
-    pv28_u	=	Column(Float)
-    pv3_i	=	Column(Float)
-    mppt_2_cap	=	Column(Float)
-    pv5_i	=	Column(Float)
-    ab_u	=	Column(Float)
-    ca_u	=	Column(Float)
-    pv7_i	=	Column(Float)
-    pv10_i	=	Column(Float)
-    pv9_i	=	Column(Float)
-    sn	=	Column(String)
-    station_code	=	Column(Integer)
+    pv26_i = Column(Float)
+    pv2_u = Column(Float)
+    pv28_i = Column(Float)
+    pv4_u = Column(Float)
+    pv22_i = Column(Float)
+    power_factor = Column(Float)
+    pv6_u = Column(Float)
+    mppt_total_cap = Column(Float)
+    pv24_i = Column(Float)
+    pv8_u = Column(Float)
+    open_time = Column(BigInteger)
+    pv22_u = Column(Float)
+    a_i = Column(Float)
+    pv24_u = Column(Float)
+    c_i = Column(Float)
+    mppt_9_cap = Column(Float)
+    pv20_u = Column(Float)
+    pv19_u = Column(Float)
+    pv15_u = Column(Float)
+    a_u = Column(Float)
+    reactive_power = Column(Float)
+    pv17_u = Column(Float)
+    c_u = Column(Float)
+    mppt_8_cap = Column(Float)
+    pv20_i = Column(Float)
+    pv15_i = Column(Float)
+    efficiency = Column(Float)
+    pv17_i = Column(Float)
+    pv11_i = Column(Float)
+    pv13_i = Column(Float)
+    pv11_u = Column(Float)
+    mppt_power = Column(Float)
+    pv13_u = Column(Float)
+    run_state = Column(Float)
+    close_time = Column(BigInteger)
+    pv19_i = Column(Float)
+    mppt_7_cap = Column(Float)
+    mppt_5_cap = Column(Float)
+    pv27_u = Column(Float)
+    pv2_i = Column(Float)
+    active_power = Column(Float)
+    pv4_i = Column(Float)
+    pv6_i = Column(Float)
+    pv8_i = Column(Float)
+    mppt_6_cap = Column(Float)
+    pv27_i = Column(Float)
+    pv1_u = Column(Float)
+    pv3_u = Column(Float)
+    pv23_i = Column(Float)
+    pv5_u = Column(Float)
+    pv25_i = Column(Float)
+    pv7_u = Column(Float)
+    pv23_u = Column(Float)
+    inverter_state = Column(Integer)
+    pv9_u = Column(Float)
+    pv25_u = Column(Float)
+    total_cap = Column(Float)
+    b_i = Column(Float)
+    mppt_3_cap = Column(Float)
+    pv21_u = Column(Float)
+    mppt_10_cap = Column(Float)
+    pv16_u = Column(Float)
+    pv18_u = Column(Float)
+    temperature = Column(Float)
+    bc_u = Column(Float)
+    b_u = Column(Float)
+    pv21_i = Column(Float)
+    elec_freq = Column(Float)
+    mppt_4_cap = Column(Float)
+    pv16_i = Column(Float)
+    pv18_i = Column(Float)
+    day_cap = Column(Float)
+    pv12_i = Column(Float)
+    pv14_i = Column(Float)
+    pv12_u = Column(Float)
+    mppt_1_cap = Column(Float)
+    pv14_u = Column(Float)
+    pv10_u = Column(Float)
+    pv26_u = Column(Float)
+    pv1_i = Column(Float)
+    pv28_u = Column(Float)
+    pv3_i = Column(Float)
+    mppt_2_cap = Column(Float)
+    pv5_i = Column(Float)
+    ab_u = Column(Float)
+    ca_u = Column(Float)
+    pv7_i = Column(Float)
+    pv10_i = Column(Float)
+    pv9_i = Column(Float)
+    sn = Column(String)
+    station_code = Column(Integer)
+
 
 class MsInverters(Base):
     __tablename__ = 'ms_inverters'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     esn_code = Column(String)
     inverter_state = Column(Integer)
     inv_type = Column(String)
     last_active_power = Column(Float)
     last_update = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class MsStations(Base):
     __tablename__ = 'ms_stations'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     capacity = Column(Float)
     grid_connection_date = Column(DateTime)
     latitude = Column(Float)
@@ -294,11 +279,12 @@ class MsStations(Base):
     station_address = Column(String)
     station_code = Column(Integer, unique=True, nullable=False)
     station_name = Column(String)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class Station(Base):
     __tablename__ = 'stations'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     total_income = Column(Float)
     total_power = Column(Float)
@@ -309,12 +295,12 @@ class Station(Base):
     station_code = Column(Integer, unique=True)
     station_name = Column(String)
     station_address = Column(String)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
 
 
 class StationHour(Base):
     __tablename__ = 'stations_hour'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     collect_time = Column(BigInteger)
     radiation_intensity = Column(Float)
@@ -323,11 +309,12 @@ class StationHour(Base):
     ongrid_power = Column(Float)
     power_profit = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class StationDay(Base):
     __tablename__ = 'stations_day'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     collect_time = Column(BigInteger)
     inverter_power = Column(Float)
@@ -342,11 +329,12 @@ class StationDay(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class StationMonth(Base):
     __tablename__ = 'stations_month'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     collect_time = Column(BigInteger)
     inverter_power = Column(Float)
@@ -361,11 +349,12 @@ class StationMonth(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class StationYear(Base):
     __tablename__ = 'stations_year'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     collect_time = Column(BigInteger)
     inverter_power = Column(Float)
@@ -381,35 +370,37 @@ class StationYear(Base):
     ongrid_power = Column(Float)
     buy_power = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
-    
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
+
 class Tou(Base):
     __tablename__ = 'tou'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     on_date = Column(DateTime)
     yield_off_peak = Column(Float)
     yield_on_peak = Column(Float)
     yield_total = Column(Float)
     revenue = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
+
 
 class Tod(Base):
     __tablename__ = 'tod'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     on_date = Column(DateTime)
     yield_total = Column(Float)
     revenue = Column(Float)
     station_code = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.now())
+    timestamp = Column(TIMESTAMP, default=datetime.now(UTC))
 
 
 class Users(Base):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     first_name = Column(String)
     last_name = Column(String)
     username = Column(String)

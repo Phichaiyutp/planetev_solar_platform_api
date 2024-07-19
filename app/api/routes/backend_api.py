@@ -1,6 +1,5 @@
 from datetime import datetime
 import os
-import json
 import re
 import requests
 from sqlalchemy.orm import Session
@@ -150,7 +149,7 @@ def get_station(db: Session) -> list:
             })
         return payload
     except Exception as e:
-        raise ValueError(f"Get station Error: {e}")
+        raise Exception(f"Get station Error: {e}")
 
 
 def get_overall(db: Session) -> dict:
@@ -215,7 +214,7 @@ def get_overall(db: Session) -> dict:
         }
         return payload
     except Exception as e:
-        raise ValueError("Get overall Error")
+        raise Exception("Get overall Error")
 
 
 @router.get("/overall")
@@ -241,7 +240,8 @@ async def read_data(db: Session = Depends(get_db)):
             return station_cache
 
         payload = get_station(db)
-        set_cache('station', payload)
+        if payload :
+            set_cache('station', payload)
         return payload
     except Exception as e:
         raise HTTPException(

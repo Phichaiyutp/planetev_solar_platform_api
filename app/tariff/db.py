@@ -1,13 +1,9 @@
-import json
-import os
 import logging
-from datetime import datetime, time, timedelta
-from sqlalchemy import extract, and_
+from datetime import datetime, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-from app.core.db import get_db
-from app.core.models import Device, Config, Inverter, Tou, Tariff, Tod, StationHour
+from app.core.models import Device, Tou, Tariff, Tod, StationHour
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -136,19 +132,19 @@ class DatabaseHandle:
                 StationHour.collect_time.between(t0, t1)
             ).all()
             if not morning_off_peak_data:
-                raise ValueError("insert_tou_fix_time morning_off_peak_data not found")
+                raise Exception("insert_tou_fix_time morning_off_peak_data not found")
             lunch_on_peak_data = db.query(StationHour.inverter_power).filter(
                 StationHour.station_code == station_code,
                 StationHour.collect_time.between(t1, t2)
             ).all()
             if not lunch_on_peak_data:
-                raise ValueError("lunch_on_peak_data not found")
+                raise Exception("lunch_on_peak_data not found")
             dinner_off_peak_data = db.query(StationHour.inverter_power).filter(
                 StationHour.station_code == station_code,
                 StationHour.collect_time.between(t2, t3)
             ).all()
             if not dinner_off_peak_data:
-                raise ValueError("dinner_off_peak_data not found")
+                raise Exception("dinner_off_peak_data not found")
 
             morning_off_peak = (
                 sum(item.inverter_power or 0 for item in morning_off_peak_data))
@@ -180,7 +176,9 @@ class DatabaseHandle:
                                 yield_total=yield_total, revenue=revenue, station_code=station_code)
                 db.add(tou_entry)
                 db.commit()
-
+                logging.info(F"Tou fix time of {station_code}:{on_date} inserted or updated  successfully!")
+            else:
+                raise Exception(F"Tou fix time of {station_code}:{on_date} is exists")
         except Exception as e:
             db.rollback()
             logging.error(f"Error: {e}")
@@ -199,7 +197,7 @@ class DatabaseHandle:
                 StationHour.collect_time.between(t0, t3)
             ).all()
             if not station_hour:
-                raise ValueError("insert_tod yield_total not found")
+                raise Exception("insert_tod yield_total not found")
             
             yield_total = (sum(item.inverter_power or 0 for item in station_hour))
 
@@ -246,7 +244,9 @@ class DatabaseHandle:
                 tod_entry = Tod(on_date=on_date, yield_total=yield_total ,revenue =revenue, station_code=station_code)
                 db.add(tod_entry)
                 db.commit()
-
+                logging.info(F"Tod of {station_code}:{on_date} inserted or updated  successfully!")
+            else:
+                raise Exception(F"Tod of {station_code}:{on_date} is exists")
         except Exception as e:
             db.rollback()
             logging.error(f"Error: {e}")

@@ -13,12 +13,9 @@ scheduler.start()
 
 scheduler = AsyncIOScheduler()
 
-""" async def Hello():
-    print("Hello FastAPI") """
 
 async def scheduler_callback():
     db: Session = next(get_db())
-    #scheduler.add_job(Hello,trigger='interval',seconds=5,id="job_Hello")
     api_handle.DevRealKpi(db)
     api_handle.StationRealKpi(db)
     api_handle.KpiStationHour(db)
@@ -36,14 +33,17 @@ async def scheduler_callback():
     if not scheduler.running:
         scheduler.start()
 
-""" @router.get("/test")
+@router.get("/time/travel")
 async def read_data():
     try:
         db: Session = next(get_db())
-        api_handle.KpiStationHour(db)
+        #for x in range(3):
+            #api_handle.time_travel = 3 - x
+        api_handle.time_travel = 3
+        api_handle.KpiStationDay(db)
         payload = {}
         return payload
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal Server Error")
     finally:
-        db.close() """
+        db.close()

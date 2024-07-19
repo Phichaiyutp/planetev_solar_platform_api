@@ -44,6 +44,8 @@ class DatabaseHandle:
         except SQLAlchemyError as e:
             db.rollback()
             logging.error(f"Error devices insert or update: {e}")
+        except Exception as e:
+            logging.error(f"Error devices insert or update: {e}")
 
     def insertInv(self, data_inv, db: Session):
         try:
@@ -149,10 +151,13 @@ class DatabaseHandle:
                 db.commit()
                 logging.info("Inverter inserted successfully!")
             else:
-                logging.info("No new Inverter records to insert.")
+                raise Exception("Inverter already exists, not inserting.")
+
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error inv insert: {e}")
+            logging.error(f"Inverter error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Inverter error inserting or updating: {e}")
 
     def insertEnergy(self, data_energy, db: Session):
         try:
@@ -209,11 +214,13 @@ class DatabaseHandle:
                 db.commit()
                 logging.info("Energy inserted successfully!")
             else:
-                logging.info("No new Energy records to insert.")
+                raise Exception("Energy already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error energy insert: {e}")
+            logging.error(f"Energy error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Energy error inserting or updating: {e}")
 
     def insertSensorEnergy(self, data_sensor_energy, db: Session):
         try:
@@ -272,11 +279,13 @@ class DatabaseHandle:
                 db.commit()
                 logging.info("Sensor energy inserted successfully!")
             else:
-                logging.info("No new Sensor energy records to insert.")
+                raise Exception("Sensor energy already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error sensor energy insert: {e}")
+            logging.error(f"Sensor energy error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Sensor energy error inserting or updating: {e}")
 
     def insertStation(self, data_station, db: Session):
         try:
@@ -303,11 +312,13 @@ class DatabaseHandle:
                 logging.info(
                     f"Inserted {len(station_obj)} Station records successfully!")
             else:
-                logging.info("No new Station records to insert.")
+                raise Exception("Station already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error station insert or update: {e}")
+            logging.error(f"Station error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Station error inserting or updating: {e}")
 
     def insertStationHour(self, data_stationhour, db: Session):
         try:
@@ -336,15 +347,16 @@ class DatabaseHandle:
                 logging.info(
                     f"Inserted {len(stationhour_obj)} StationHour records successfully!")
             else:
-                logging.info("No new StationHour records to insert.")
+                raise Exception("Station hour already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error inserting or updating station hour: {e}")
+            logging.error(f"Station hour error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Station hour error inserting or updating: {e}")
 
     def insertStationDay(self, data_stationday, db: Session):
         try:
-
             stationday_obj = []
             for item in data_stationday:
                 stationday_exists = db.query(StationDay).filter(
@@ -373,11 +385,13 @@ class DatabaseHandle:
                 db.commit()
                 logging.info("Station inserted day successfully!")
             else:
-                logging.info("Station day already exists, not inserting.")
+                raise Exception("Station day already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error inserting or updating station day: {e}")
+            logging.error(f"Station day error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Station day error inserting or updating: {e}")
 
     def insertStationMonth(self, data_stationmonth, db: Session):
         try:
@@ -410,11 +424,13 @@ class DatabaseHandle:
                 db.commit()
                 logging.info("Station inserted month or updated successfully!")
             else:
-                logging.info("No new records to insert.")
+                raise Exception("Station month already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error inserting or updating station month: {e}")
+            logging.error(f"Station month error inserting or updating: {e}")
+        except Exception as e:
+            logging.error(f"Station month error inserting or updating: {e}")
 
     def insertStationYear(self, data_stationyear, db: Session):
         try:
@@ -446,13 +462,13 @@ class DatabaseHandle:
             if stationyear_obj:
                 db.add_all(stationyear_obj)
                 db.commit()
-                logging.info("Station inserted year or updated successfully!")
+                logging.info("Station year inserted year or updated successfully!")
             else:
-                logging.info("No new records to insert for StationYear.")
+                raise Exception("Station year already exists, not inserting.")
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error inserting or updating station year: {e}")
+            logging.error(f"Station year error inserting or updating station year: {e}")
 
     def insertMsStation(self, data_ms_station, db: Session):
         try:
@@ -482,6 +498,6 @@ class DatabaseHandle:
 
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error ms_station insert or update: {e}")
+            logging.error(f"Master station error  insert or update: {e}")
 
 

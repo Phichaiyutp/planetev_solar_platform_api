@@ -159,7 +159,7 @@ class ApiHandle():
                 self.xsrf_token = self.getSolarApiToken()
             plantCode = self.listPlantCode()
             local_time = datetime.datetime.now().replace(
-                hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=(1+self.time_travel))
+                hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=(self.time_travel))
             unix_timestamp = local_time.timestamp()
             millisec = int(unix_timestamp * 1000)
             payload = {
@@ -183,7 +183,7 @@ class ApiHandle():
                 self.xsrf_token = self.getSolarApiToken()
             plantCode = self.listPlantCode()
             local_time = datetime.datetime.now().replace(
-                hour=0, minute=0, second=0, microsecond=0)
+                hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=(self.time_travel))
             unix_timestamp = local_time.timestamp()
             millisec = int(unix_timestamp * 1000)
             payload = {

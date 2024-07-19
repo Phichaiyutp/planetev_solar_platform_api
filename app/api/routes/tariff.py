@@ -50,48 +50,18 @@ def tariff(device_list: dict,db:Session) -> dict:
             scheduler.add_job(db_handle.insert_tod_total_cap, trigger='cron', args=[db,element['esn_code']], day_of_week='*', hour=0, minute=0, second=0, id=f"job_{element['esn_code']}_tod_total_cap")
 
 
-""" @router.get("/toufix")
+@router.get("/time/travel")
 async def toufix():
     try:
         db: Session = next(get_db())
         device_list = db_handle.get_device(db)
-        for x in range(102):
-            db_handle.time_travel = 102 - x
-            for element in device_list:
-                db_handle.insert_tod(db,element['station_code'])
+        #for x in range(3):
+            #db_handle.time_travel = 3 - x
+        for element in device_list:
+            db_handle.insert_tou_fix_time(db,element['station_code'])
                 
-        for x in range(28):
-            db_handle.time_travel = 32 - x
-            for element in device_list:
-                db_handle.insert_t0(db,element['esn_code'])
-                db_handle.update_yield_off_peak(db,element['esn_code'])
-                db_handle.update_t1(db,element['esn_code'])
-                db_handle.update_t2(db,element['esn_code'])
-                db_handle.update_yield_on_peak(db,element['esn_code'])
 
         return {}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")  """       
+        raise HTTPException(status_code=500, detail="Internal Server Error")        
     
-""" @router.get("/add_jobs")
-async def read_data():
-    try:
-        db: Session = next(get_db())
-        device_list = db_handle.get_device(db)
-        db_handle.close_db(db)
-        payload = tariff(device_list,db)
-        return payload
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error") """
-
-""" @router.get("/delete_jobs")
-async def delete_all_jobs():
-    try:
-        scheduler.pause()
-        job_ids = [job.id for job in scheduler.get_jobs()]
-        for job_id in job_ids:
-            scheduler.remove_job(job_id)
-        scheduler.resume()
-        return {"message": "All jobs deleted successfully."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to delete jobs.") """
