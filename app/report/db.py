@@ -1,5 +1,6 @@
 
 import time
+from typing import List, Optional
 from app.core.models import MsStations, Tou, Tod, Device, DeviceType, Tariff, StationDay
 from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,9 +21,12 @@ class DatabaseHandle:
     def __init__(self):
         pass
 
-    def get_tou_summary(self, db: Session, period_dt: datetime):
+    def get_tou_summary(self, db: Session, period_dt: datetime, stations: Optional[List[int]] = None):
         try:
-            stations = []
+            stations_data = []
+            error = []
+
+            # Determine the period for the report
             this_month = datetime(datetime.now().year, datetime.now().month, 1)
             if period_dt > this_month:
                 this_period = this_month
@@ -31,27 +35,19 @@ class DatabaseHandle:
                 dt_e = pendulum.instance(this_month).add(months=1)
             else:
                 this_period = period_dt
-                end_day = pendulum.instance(this_period).add(
+                end_day = pendulum.instance(period_dt).add(
                     months=1).subtract(days=1)
                 dt_s = period_dt
                 dt_e = pendulum.instance(period_dt).add(months=1)
 
+            # Thai month names
             months_th = {
-                1: "มกราคม",
-                2: "กุมภาพันธ์",
-                3: "มีนาคม",
-                4: "เมษายน",
-                5: "พฤษภาคม",
-                6: "มิถุนายน",
-                7: "กรกฎาคม",
-                8: "สิงหาคม",
-                9: "กันยายน",
-                10: "ตุลาคม",
-                11: "พฤศจิกายน",
-                12: "ธันวาคม"
+                1: "มกราคม", 2: "กุมภาพันธ์", 3: "มีนาคม", 4: "เมษายน", 5: "พฤษภาคม", 6: "มิถุนายน",
+                7: "กรกฎาคม", 8: "สิงหาคม", 9: "กันยายน", 10: "ตุลาคม", 11: "พฤศจิกายน", 12: "ธันวาคม"
             }
 
-            tariff = db.query(
+            # Query tariff information
+            tariff_query = db.query(
                 Device.station_code,
                 Tariff.name,
                 Tariff.volt_rate_max,
@@ -62,15 +58,31 @@ class DatabaseHandle:
                 Tariff.tod_rate_min,
                 Tariff.tod_rate_mid,
                 Tariff.tod_rate_max
-            ).join(Device).filter(Device.dev_type_id == 1).all()
+            ).join(Device).filter(Device.dev_type_id == 1)
 
-            if not tariff:
-                raise Exception("Tariff not found for the station")
+            # Check and filter by stations
+            if stations:
+                for station in stations:
+                    ms_station = db.query(MsStations).filter(
+                        MsStations.station_code == station).first()
+                    if not ms_station:
+                        error.append(
+                            {'msg': f'Station code {station} not found'})
+                tariff_query = tariff_query.filter(
+                    Device.station_code.in_(stations))
 
-            for tariff_item in tariff:
-                if tariff_item.name == "TOU_FIX_TIME" or tariff_item.name == "TOU":
-                    ms_stations = db.query(MsStations.station_name).filter(
+            tariffs = tariff_query.all()
+
+            if not tariffs:
+                error.append(
+                    {'msg': 'No tariffs found for the specified stations.'})
+                return self.prepare_payload(this_period, end_day, months_th, stations_data, error)
+
+            for tariff_item in tariffs:
+                if tariff_item.name in ["TOU_FIX_TIME", "TOU"]:
+                    ms_station = db.query(MsStations.station_name).filter(
                         MsStations.station_code == tariff_item.station_code).first()
+
                     tou = db.query(
                         Tou.station_code,
                         func.sum(Tou.yield_off_peak).label('yield_off_peak'),
@@ -83,8 +95,9 @@ class DatabaseHandle:
                     ).group_by(Tou.station_code).first()
 
                     if not tou:
-                        raise Exception(f"Bill not found for the station with code {
-                                        tariff_item.station_code}")
+                        error.append({'msg': f'Bill not found for the station with code {
+                            tariff_item.station_code}'})
+                        continue
 
                     total_yield = tou.yield_total
                     offPeak = tou.yield_off_peak
@@ -96,27 +109,37 @@ class DatabaseHandle:
                     onPeakAmount = (onPeak * onPeakRateDsc) + \
                         (onPeak * tariff_item.ft)
                     offPeakAmount = (offPeak * offPeakRateDsc) + \
-                        (offPeak * tariff_item.ft)
+                                    (offPeak * tariff_item.ft)
                     amount = onPeakAmount + offPeakAmount
 
-                    stations.append({
-                        'name': ms_stations.station_name,
-                        'yield': round(total_yield,2),
-                        'amount': round(amount,2)
+                    stations_data.append({
+                        'stationId': tariff_item.station_code,
+                        'name': ms_station.station_name if ms_station else 'Unknown',
+                        'yield': round(total_yield, 2),
+                        'amount': round(amount, 2),
+                        'details': self.get_tou_station(db, period_dt, tariff_item.station_code)
                     })
 
-            payload = {
-                "billPeriod": f"ประจำเดือน{months_th[this_period.month]} {this_period.year}",
-                'summaryDateForm': f"{this_period.day} {months_th[this_period.month]} {this_period.year}",
-                'summaryDateTo': f"{end_day.day} {months_th[this_period.month]} {this_period.year}",
-                'stations': stations
-            }
-            return payload
+            return self.prepare_payload(this_period, end_day, months_th, stations_data, error)
+
         except SQLAlchemyError as e:
             db.rollback()
-            logging.error(f"Error: {e}")
+            logging.error(f"SQLAlchemy Error: {e}")
+            return {'error': 'Database error occurred.'}
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error(f"General Error: {e}")
+            return {'error': 'An unexpected error occurred.'}
+
+    def prepare_payload(self, this_period, end_day, months_th, stations_data, error):
+        payload = {
+            "billPeriod": f"ประจำเดือน {months_th[this_period.month]} {this_period.year}",
+            'summaryDateForm': f"{this_period.day} {months_th[this_period.month]} {this_period.year}",
+            'summaryDateTo': f"{end_day.day} {months_th[this_period.month]} {this_period.year}",
+            'stations': stations_data
+        }
+        if error:
+            payload['error'] = error
+        return payload
 
     def get_tou_station(self, db: Session, period_dt: datetime, station_code: int):
         try:
@@ -205,9 +228,9 @@ class DatabaseHandle:
                 # Plotting
                 plt.figure(figsize=(10, 5))
                 plt.plot(dates, totals, label='PV output (kWh)',
-                        color='blue', marker='o')
+                         color='blue', marker='o')
                 plt.plot(dates, consumptions, label='Total consumption (kWh)',
-                        color='orange', marker='o')
+                         color='orange', marker='o')
                 plt.xlabel('Day/Month/Year')
                 plt.ylabel('kWh')
                 plt.title('Daily Report')
