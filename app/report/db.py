@@ -173,11 +173,6 @@ class DatabaseHandle:
                     amount = eRateMinAmount + eRateMidAmount + eRateMaxAmount
 
                 stations_data.append({
-                    'peopleInvolved':{
-                        'eng' : "Planetcomm Co,Ltd.",
-                        'pm' : "Planetcomm Co,Ltd.",
-                        'inspector' : "CJ. Express Group Co,Ltd."
-                    },
                     'stationId': tariff_item.station_code,
                     'name': ms_station.station_name if ms_station else 'Unknown',
                     'yield': round(total_yield, 2),
@@ -200,6 +195,11 @@ class DatabaseHandle:
             "billPeriod": f"ประจำเดือน {months_th[this_period.month]} {this_period.year}",
             'summaryDateForm': f"{this_period.day} {months_th[this_period.month]} {this_period.year}",
             'summaryDateTo': f"{end_day.day} {months_th[this_period.month]} {this_period.year}",
+            'peopleInvolved': {
+                'eng': "Planetcomm Co,Ltd.",
+                'pm': "Planetcomm Co,Ltd.",
+                'inspector': "CJ. Express Group Co,Ltd."
+            },
             'stations': stations_data
         }
         if error:
