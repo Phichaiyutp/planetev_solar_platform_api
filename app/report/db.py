@@ -454,6 +454,11 @@ class DatabaseHandle:
         payload = {
             'date': datetime.now().strftime('%d-%m-%Y'),
             'tariff': tariff.name,
+            'peopleInvolved':{
+                'eng' : "Planetcomm Co,Ltd.",
+                'pm' : "Planetcomm Co,Ltd.",
+                'inspector' : "CJ. Express Group Co,Ltd."
+            },
             'project': 'ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา (Solar RoofTop Syatem)',
             'location': station.station_name,
             'preparedBy': 'Input From Frontend',
