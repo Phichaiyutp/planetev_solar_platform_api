@@ -9,18 +9,21 @@ router = APIRouter()
 
 db_handle = DatabaseHandle()
 
+
 @router.get('/monthly/chart/{id}')
 async def chart_report(id: str):
     try:
         cached_data = get_cache(id)
-        
+
         if cached_data is None:
-            raise HTTPException(status_code=404, detail="Data not found in cache")
+            raise HTTPException(
+                status_code=404, detail="Data not found in cache")
 
         return cached_data
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 @router.get('/monthly')
@@ -58,7 +61,7 @@ async def summary_report(year: int, month: int, station: Optional[str] = None):
                 # 1 day or 30 days
                 cache_duration = 86400 if this_month <= month and this_year == year else 2592000
                 set_cache(cache_key_current if this_month <= month and this_year ==
-                    year else cache_key_period, data, cache_duration)
+                          year else cache_key_period, data, cache_duration)
             return data
         else:
             raise Exception("Summary report not found")
@@ -99,10 +102,10 @@ async def station_report(station: int, year: int, month: int):
         if data:
             if this_month <= month and this_year == year:
                 set_cache(f'report_{datetime.now().strftime("%m_%Y")}_{
-                          station}', data, 86400)  # 1 day
+                    station}', data, 86400)  # 1 day
             else:
                 set_cache(f'report_{period_dt.strftime("%m_%Y")}_{
-                          station}', data, 2592000)  # 30 days
+                    station}', data, 2592000)  # 30 days
             return data
         else:
             raise Exception("Station code not found")
