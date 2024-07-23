@@ -273,10 +273,10 @@ class DatabaseHandle:
                 daily = [
                     {
                         'date': item.on_date.strftime('%d-%m-%Y'),
-                        'offPeak': item.yield_off_peak if item.yield_off_peak else 0,
-                        'onPeak': item.yield_on_peak if item.yield_on_peak else 0,
-                        'total': item.yield_total if item.yield_total else 0,
-                        'consumption': next((sd['use_power'] for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
+                        'offPeak': round(item.yield_off_peak,2) if item.yield_off_peak else 0,
+                        'onPeak': round(item.yield_on_peak,2) if item.yield_on_peak else 0,
+                        'total': round(item.yield_total,2) if item.yield_total else 0,
+                        'consumption': next((round(sd['use_power'],2) for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
                     }
                     for item in bill
                 ]
