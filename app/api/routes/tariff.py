@@ -46,7 +46,7 @@ def tariff(device_list: dict,db:Session) -> dict:
             scheduler.add_job(db_handle.update_yield_on_peak, trigger='cron', args=[db,element['esn_code']], day_of_week='mon-fri', hour=time['ynp_hh'], minute=time['ynp_mm'], id=f"job_{element['esn_code']}_update_yield_on_peak")
         """
         elif element['tariff_type'] == "TOD":
-            scheduler.add_job(db_handle.insert_tod_total_cap, trigger='cron', args=[db,element['esn_code']], day_of_week='*', hour=0, minute=0, second=0, id=f"job_{element['esn_code']}_tod_total_cap")
+            scheduler.add_job(db_handle.insert_tod, trigger='cron', args=[db,element['esn_code']], day_of_week='*', hour=0, minute=0, second=0, id=f"job_{element['esn_code']}_tod_total_cap")
 
 
 @router.get("/time/travel")
@@ -54,10 +54,14 @@ async def toufix():
     try:
         db: Session = next(get_db())
         device_list = db_handle.get_device(db)
-        #for x in range(3):
-            #db_handle.time_travel = 3 - x
-        for element in device_list:
-            db_handle.insert_tou_fix_time(db,element['station_code'])
+        for x in range(100,160,1):
+            db_handle.time_travel = x
+            for element in device_list:
+                if element['tariff_type'] == "TOU_FIX_TIME":
+                    #db_handle.insert_tou_fix_time(db,element['station_code'])
+                    pass
+                elif element['tariff_type'] == "TOD":
+                    db_handle.insert_tod(db,element['station_code'])
                 
 
         return {}

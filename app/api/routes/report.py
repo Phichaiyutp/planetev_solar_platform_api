@@ -52,7 +52,7 @@ async def summary_report(year: int, month: int, station: Optional[str] = None):
         if station:
             list_of_station = [int(x) for x in station.split(',')]
 
-        data = db_handle.get_tou_summary(db, period_dt, list_of_station)
+        data = db_handle.get_tariff_summary(db, period_dt, list_of_station)
         if data:
             if not 'error' in data:
                 # 1 day or 30 days
@@ -95,7 +95,7 @@ async def station_report(station: int, year: int, month: int):
         if report_cache:
             return report_cache
 
-        data = db_handle.get_tou_station(db, period_dt, station)
+        data = db_handle.get_tariff_station(db, period_dt, station)
         if data:
             if this_month <= month and this_year == year:
                 set_cache(f'report_{datetime.now().strftime("%m_%Y")}_{

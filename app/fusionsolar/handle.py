@@ -170,11 +170,9 @@ class ApiHandle():
             dataStationHour = self.requestsSolarAPI(payload, urlGetStationDay)
             if dataStationHour:
                 db_handle.insertStationHour(self.convertStationSumData(dataStationHour, 'hour'),db)
-                return {'ok':True}
             
         except Exception as e:
             logging.error(f"KpiStationHour Error: {e}")
-            return {'ok':False}
 
     def KpiStationDay(self,db: Session):
         try:
@@ -192,12 +190,11 @@ class ApiHandle():
             }
             dataStationDay = self.requestsSolarAPI(payload, urlGetStationDay)
             if dataStationDay:
+                logging.info(f"Request Kpi Station Day Is Ok.")
                 db_handle.insertStationDay(self.convertStationSumData(dataStationDay, 'day'),db)
-                return  {'ok':True}
             
         except Exception as e:
             logging.error(f"KpiStationDay Error: {e}")
-            return {'ok':False}
         
     def KpiStationMonth(self,db: Session):
         try :
@@ -216,11 +213,11 @@ class ApiHandle():
             dataStationMonth = self.requestsSolarAPI(payload, urlGetStationMonth)
             if dataStationMonth:
                 db_handle.insertStationMonth(self.convertStationSumData(dataStationMonth, 'month'),db)
-                return {'ok':True}
+                
             
         except Exception as e:
             logging.error(f"KpiStationMonth Error: {e}")
-            return {'ok':False}
+            
         
     def KpiStationYear(self,db: Session):
         try:
@@ -239,11 +236,11 @@ class ApiHandle():
             dataStationYear = self.requestsSolarAPI(payload, urlGetStationYear)
             if dataStationYear:
                 db_handle.insertStationYear(self.convertStationSumData(dataStationYear, 'year'),db)
-                return {'ok':True}
+                
             
         except Exception as e:
             logging.error(f"KpiStationYear Error: {e}")
-            return {'ok':False}
+            
         
     def getSolarApiToken(self):
         

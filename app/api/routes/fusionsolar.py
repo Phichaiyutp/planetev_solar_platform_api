@@ -36,10 +36,9 @@ async def scheduler_callback(db:Session):
 async def read_data():
     try:
         db: Session = next(get_db())
-        for x in range(3):
-            api_handle.time_travel = 3 - x
-            api_handle.time_travel = 3
-            api_handle.KpiStationDay(db)
+        for x in range(14,0,-1):
+            api_handle.time_travel = x
+            api_handle.KpiStationHour(db)
         payload = {}
         return payload
     except Exception as e:

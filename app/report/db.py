@@ -22,7 +22,7 @@ class DatabaseHandle:
     def __init__(self):
         pass
 
-    def get_tou_summary(self, db: Session, period_dt: datetime, stations: Optional[List[int]] = None):
+    def get_tariff_summary(self, db: Session, period_dt: datetime, stations: Optional[List[int]] = None):
         try:
             stations_data = []
             error = []
@@ -201,7 +201,7 @@ class DatabaseHandle:
             payload['error'] = error
         return payload
 
-    def get_tou_station(self, db: Session, period_dt: datetime, station_code: int):
+    def get_tariff_station(self, db: Session, period_dt: datetime, station_code: int):
         try:
             this_month = datetime(datetime.now().year, datetime.now().month, 1)
             if period_dt > this_month:
@@ -273,10 +273,10 @@ class DatabaseHandle:
                 daily = [
                     {
                         'date': item.on_date.strftime('%d-%m-%Y'),
-                        'offPeak': round(item.yield_off_peak,2) if item.yield_off_peak else 0,
-                        'onPeak': round(item.yield_on_peak,2) if item.yield_on_peak else 0,
-                        'total': round(item.yield_total,2) if item.yield_total else 0,
-                        'consumption': next((round(sd['use_power'],2) for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
+                        'offPeak': round(item.yield_off_peak, 2) if item.yield_off_peak else 0,
+                        'onPeak': round(item.yield_on_peak, 2) if item.yield_on_peak else 0,
+                        'total': round(item.yield_total, 2) if item.yield_total else 0,
+                        'consumption': next((round(sd['use_power'], 2) for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
                     }
                     for item in bill
                 ]
@@ -317,7 +317,8 @@ class DatabaseHandle:
                 plt.close()
                 buffer.seek(0)
                 img_base64 = base64.b64encode(buffer.read()).decode()
-                set_cache(F"chart_{station_code}_{chart_datetime}",img_base64,3000)
+                set_cache(F"chart_{station_code}_{
+                          chart_datetime}", img_base64, 3000)
                 buffer.close()
                 offPeak = sum(item['offPeak'] for item in daily)
                 onPeak = sum(item['onPeak'] for item in daily)
@@ -358,19 +359,16 @@ class DatabaseHandle:
                 }
 
             elif tariff.name == "TOD":
-                bill = db.query(Tod).filter(
-                    func.DATE_TRUNC('month', Tod.on_date) == query_datetime,
-                    Tod.station_code == station_code
-                ).order_by(Tod.on_date.asc()).all()
-
+                bill = db.query(Tod).filter(Tod.on_date >= dt_s, Tod.on_date < dt_e,
+                                            Tod.station_code == station_code).order_by(Tod.on_date.asc()).all()
                 if not bill:
                     raise Exception("Bill not found for the station")
 
                 daily = [
                     {
                         'date': item.on_date.strftime('%d-%m-%Y'),
-                        'total': item.yield_total if item.yield_total else 0,
-                        'consumption': next((sd['use_power'] for sd in station_day if sd['collect_time'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
+                        'total': round(item.yield_total, 2) if item.yield_total else 0,
+                        'consumption': next((round(sd['use_power'], 2) for sd in station_day if sd['timestamp'] == item.on_date.strftime('%d-%m-%Y 00:00:00')), 0)
                     }
                     for item in bill
                 ]
@@ -443,7 +441,7 @@ class DatabaseHandle:
                     'consumption': round(sum(item['consumption'] for item in daily), 2),
                     'daily': daily,
                     'devices': devices,
-                    #'chart': img_base64
+                    # 'chart': img_base64
                 }
 
             else:
