@@ -410,6 +410,46 @@ class DatabaseHandle:
                         (eRateMidTotal * tariff.ft)
                     eRateMaxAmount = (eRateMaxTotal * eRateMaxDsc) + \
                         (eRateMaxTotal * tariff.ft)
+                    
+                dates = [item['date'] for item in daily]
+                totals = [item['total'] for item in daily]
+                consumptions = [item['consumption'] for item in daily]
+                # Convert dates to datetime objects
+                dates = [datetime.strptime(date, '%d-%m-%Y') for date in dates]
+
+                # Plotting
+                plt.figure(figsize=(10, 5))
+                plt.plot(dates, totals, label='PV output (kWh)',
+                         color='blue', marker='o')
+                plt.plot(dates, consumptions, label='Total consumption (kWh)',
+                         color='orange', marker='o')
+                plt.xlabel('Day/Month/Year')
+                plt.ylabel('kWh')
+                plt.title('Daily Report')
+                plt.legend()
+                plt.grid(True)
+                plt.xticks(rotation=45)
+                plt.tight_layout()
+                bottom, top = plt.ylim()
+                plt.ylim(top=top+(top*0.1))
+                # Adding annotations
+                for i, (date, total) in enumerate(zip(dates, totals)):
+                    plt.annotate(f'{total}', (date, total), textcoords="offset points", xytext=(
+                        0, 5), ha='center', va='bottom', fontsize=8, rotation=45)
+
+                for i, (date, consumption) in enumerate(zip(dates, consumptions)):
+                    plt.annotate(f'{consumption}', (date, consumption), textcoords="offset points", xytext=(
+                        0, 5), ha='center', va='bottom', fontsize=8, rotation=45)
+
+                # Save to buffer
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png')
+                plt.close()
+                buffer.seek(0)
+                img_base64 = base64.b64encode(buffer.read()).decode()
+                set_cache(F"chart_{station_code}_{
+                          chart_datetime}", img_base64, 3000)
+                buffer.close()
 
                 return {
                     'date': datetime.now().strftime('%d-%m-%Y'),
@@ -441,7 +481,7 @@ class DatabaseHandle:
                     'consumption': round(sum(item['consumption'] for item in daily), 2),
                     'daily': daily,
                     'devices': devices,
-                    # 'chart': img_base64
+                    'chartEndpoint': F"/api/report/monthly/chart/chart_{station_code}_{chart_datetime}"
                 }
 
             else:
