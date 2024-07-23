@@ -177,7 +177,7 @@ class DatabaseHandle:
                     'name': ms_station.station_name if ms_station else 'Unknown',
                     'yield': round(total_yield, 2),
                     'amount': round(amount, 2),
-                    'details': self.get_tou_station(db, period_dt, tariff_item.station_code)
+                    'details': self.get_tariff_station(db, period_dt, tariff_item.station_code)
                 })
 
             return self.prepare_payload(this_period, end_day, months_th, stations_data, error)
