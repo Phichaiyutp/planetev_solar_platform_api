@@ -173,6 +173,11 @@ class DatabaseHandle:
                     amount = eRateMinAmount + eRateMidAmount + eRateMaxAmount
 
                 stations_data.append({
+                    'peopleInvolved':{
+                        'eng' : "Planetcomm Co,Ltd.",
+                        'pm' : "Planetcomm Co,Ltd.",
+                        'inspector' : "CJ. Express Group Co,Ltd."
+                    },
                     'stationId': tariff_item.station_code,
                     'name': ms_station.station_name if ms_station else 'Unknown',
                     'yield': round(total_yield, 2),
@@ -454,11 +459,6 @@ class DatabaseHandle:
         payload = {
             'date': datetime.now().strftime('%d-%m-%Y'),
             'tariff': tariff.name,
-            'peopleInvolved':{
-                'eng' : "Planetcomm Co,Ltd.",
-                'pm' : "Planetcomm Co,Ltd.",
-                'inspector' : "CJ. Express Group Co,Ltd."
-            },
             'project': 'ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา (Solar RoofTop Syatem)',
             'location': station.station_name,
             'preparedBy': 'Input From Frontend',
