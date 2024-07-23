@@ -2,6 +2,7 @@
 import time
 from typing import List, Optional
 from app.core.models import MsStations, Tou, Tod, Device, DeviceType, Tariff, StationDay
+from app.core.db import get_db, get_cache, set_cache
 from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -205,6 +206,7 @@ class DatabaseHandle:
             this_month = datetime(datetime.now().year, datetime.now().month, 1)
             if period_dt > this_month:
                 query_datetime = this_month.strftime('%Y-%m-%d')
+                chart_datetime = this_month.strftime('%Y_%m')
                 dt_s = this_month
                 unixdt_s = time.mktime(this_month.timetuple())
                 shiftmonthly = pendulum.instance(this_month).add(months=1)
@@ -212,6 +214,7 @@ class DatabaseHandle:
                 unixdt_e = time.mktime(shiftmonthly.timetuple())
             else:
                 query_datetime = period_dt.strftime('%Y-%m-%d')
+                chart_datetime = this_month.strftime('%Y_%m')
                 dt_s = period_dt
                 unixdt_s = time.mktime(period_dt.timetuple())
                 shiftmonthly = pendulum.instance(period_dt).add(months=1)
@@ -314,6 +317,7 @@ class DatabaseHandle:
                 plt.close()
                 buffer.seek(0)
                 img_base64 = base64.b64encode(buffer.read()).decode()
+                set_cache(F"chart_{station_code}_{chart_datetime}",img_base64,3000)
                 buffer.close()
                 offPeak = sum(item['offPeak'] for item in daily)
                 onPeak = sum(item['onPeak'] for item in daily)
@@ -350,7 +354,7 @@ class DatabaseHandle:
                     'consumption': round(sum(item['consumption'] for item in daily), 2),
                     'daily': daily,
                     'devices': devices,
-                    'chart': img_base64
+                    'chartEndpoint': F"/api/report/monthly/chart/chart_{station_code}_{chart_datetime}"
                 }
 
             elif tariff.name == "TOD":
@@ -438,7 +442,8 @@ class DatabaseHandle:
                     'total': round(total, 2),
                     'consumption': round(sum(item['consumption'] for item in daily), 2),
                     'daily': daily,
-                    'devices': devices
+                    'devices': devices,
+                    #'chart': img_base64
                 }
 
             else:

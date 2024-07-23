@@ -9,6 +9,19 @@ router = APIRouter()
 
 db_handle = DatabaseHandle()
 
+@router.get('/monthly/chart/{id}')
+async def chart_report(id: str):
+    try:
+        cached_data = get_cache(id)
+        
+        if cached_data is None:
+            raise HTTPException(status_code=404, detail="Data not found in cache")
+
+        return cached_data
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 
 @router.get('/monthly')
 async def summary_report(year: int, month: int, station: Optional[str] = None):
