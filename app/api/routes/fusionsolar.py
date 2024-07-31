@@ -24,10 +24,10 @@ async def scheduler_callback(db:Session):
 
     scheduler.add_job(api_handle.DevRealKpi, trigger='interval', minutes=5, args=[db], id="job_DevRealKpi")
     scheduler.add_job(api_handle.StationRealKpi, trigger='interval', minutes=5, args=[db], id="job_StationRealKpi")
-    scheduler.add_job(api_handle.KpiStationHour, trigger='cron', day='*', args=[db], id="job_KpiStationHour")
-    scheduler.add_job(api_handle.KpiStationDay, trigger='cron', day='*', args=[db], id="job_KpiStationDay")
-    scheduler.add_job(api_handle.KpiStationMonth, trigger='cron', day='1', args=[db], id="job_KpiStationMonth")
-    scheduler.add_job(api_handle.KpiStationYear, trigger='cron', month='1', day='1', args=[db], id="job_KpiStationYear")
+    scheduler.add_job(api_handle.KpiStationHour, trigger='interval', hours=1, args=[db], id="job_KpiStationHour")  
+    scheduler.add_job(api_handle.KpiStationDay, trigger='interval', days=1, args=[db], id="job_KpiStationDay")    
+    scheduler.add_job(api_handle.KpiStationMonth, trigger='interval', days=30, args=[db], id="job_KpiStationMonth") 
+    scheduler.add_job(api_handle.KpiStationYear, trigger='interval', days=365, args=[db], id="job_KpiStationYear")  
 
     if not scheduler.running:
         scheduler.start()

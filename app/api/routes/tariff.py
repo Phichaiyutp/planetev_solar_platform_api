@@ -34,7 +34,13 @@ async def scheduler_callback(db:Session):
 def tariff(device_list: dict,db:Session) -> dict:
     for element in device_list:
         if element['tariff_type'] == "TOU_FIX_TIME":
-            scheduler.add_job(db_handle.insert_tou_fix_time, trigger='cron', args=[db,element['station_code']], day_of_week='*', hour=time['t0hh'], minute=time['t0mm'], id=f"job_{element['esn_code']}_insert_tou_fix_time")
+            scheduler.add_job(
+                db_handle.insert_tou_fix_time,
+                trigger='interval',
+                days=1,
+                args=[db, element['station_code']],
+                id=f"job_{element['esn_code']}_insert_tou_fix_time"
+            )
         
         elif element['tariff_type'] == "TOU":
             pass
@@ -46,8 +52,13 @@ def tariff(device_list: dict,db:Session) -> dict:
             scheduler.add_job(db_handle.update_yield_on_peak, trigger='cron', args=[db,element['esn_code']], day_of_week='mon-fri', hour=time['ynp_hh'], minute=time['ynp_mm'], id=f"job_{element['esn_code']}_update_yield_on_peak")
         """
         elif element['tariff_type'] == "TOD":
-            scheduler.add_job(db_handle.insert_tod, trigger='cron', args=[db,element['esn_code']], day_of_week='*', hour=0, minute=0, second=0, id=f"job_{element['esn_code']}_tod_total_cap")
-
+            scheduler.add_job(
+                db_handle.insert_tod,
+                trigger='interval',
+                days=1,
+                args=[db, element['esn_code']],
+                id=f"job_{element['esn_code']}_tod_total_cap"
+            )
 
 @router.get("/time/travel")
 async def toufix():
