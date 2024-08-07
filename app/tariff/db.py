@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import List
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
@@ -114,71 +115,60 @@ class DatabaseHandle:
             db.rollback()
             logging.error(f"Error getting station code: {e}")
 
-    def insert_tou_fix_time(self, db: Session, station_code):
+    def insert_tou_fix_time(self, db: Session, station_code: str) :
         try:
-            today = datetime.now() - timedelta(days=self.time_travel)
-            yesterday = today - timedelta(days=1)
-            on_date = f'{yesterday.year}-{yesterday.month}-{yesterday.day}'
-            t0 = int(yesterday.replace(hour=0, minute=0, second=0).timestamp())
-            t1 = int(yesterday.replace(
-                hour=8, minute=59, second=59).timestamp())
-            t2 = int(yesterday.replace(
-                hour=22, minute=0, second=0).timestamp())
+            yesterday = datetime.now() - timedelta(days=self.time_travel + 1)
+            t0 = int(yesterday.replace(hour=5, minute=0, second=0).timestamp())
+            t1 = int(yesterday.replace(hour=9, minute=0, second=0).timestamp())
+            t2 = int(yesterday.replace(hour=9, minute=0, second=1).timestamp())
             t3 = int(yesterday.replace(
-                hour=23, minute=59, second=59).timestamp())
+                hour=20, minute=0, second=0).timestamp())
 
-            morning_off_peak_data = db.query(StationHour.inverter_power).filter(
-                StationHour.station_code == station_code,
-                StationHour.collect_time.between(t0, t1)
-            ).all()
-            if not morning_off_peak_data:
-                raise Exception("insert_tou_fix_time morning_off_peak_data not found")
-            lunch_on_peak_data = db.query(StationHour.inverter_power).filter(
-                StationHour.station_code == station_code,
-                StationHour.collect_time.between(t1, t2)
-            ).all()
-            if not lunch_on_peak_data:
-                raise Exception("lunch_on_peak_data not found")
-            dinner_off_peak_data = db.query(StationHour.inverter_power).filter(
-                StationHour.station_code == station_code,
-                StationHour.collect_time.between(t2, t3)
-            ).all()
-            if not dinner_off_peak_data:
-                raise Exception("dinner_off_peak_data not found")
+            def get_data(t_start, t_end):
+                return db.query(StationHour.inverter_power).filter(
+                    StationHour.station_code == station_code,
+                    StationHour.collect_time.between(t_start, t_end)
+                ).all()
 
-            morning_off_peak = (
-                sum(item.inverter_power or 0 for item in morning_off_peak_data))
-            on_peak = (
-                sum(item.inverter_power or 0 for item in lunch_on_peak_data))
-            dinner_off_peak = (
-                sum(item.inverter_power or 0 for item in dinner_off_peak_data))
-            off_peak = morning_off_peak + dinner_off_peak
+            morning_off_peak_data = get_data(t0, t1)
+            lunch_on_peak_data = get_data(t2, t3)
+            if len(lunch_on_peak_data) != 11 or len(morning_off_peak_data) != 5:
+                raise Exception(f"Insert TOU fix time: Cannot read 24 hours of data for station {station_code} on {yesterday.strftime('%d/%m/%Y')}.")
+
+
+            off_peak = sum(
+                item.inverter_power or 0 for item in morning_off_peak_data)
+            on_peak = sum(
+                item.inverter_power or 0 for item in lunch_on_peak_data)
             yield_total = on_peak + off_peak
 
-            tariff = db.query(Tariff.dsc, Tariff.ft, Tariff.tou_on_pk_rate_max, Tariff.tou_off_pk_rate_max) \
-                .filter((Tariff.name == "TOU_FIX_TIME") | (Tariff.name == "TOU")) \
-                .first()
+            tariff = db.query(Tariff.dsc, Tariff.ft, Tariff.tou_on_pk_rate_max, Tariff.tou_off_pk_rate_max).filter(
+                (Tariff.name == "TOU_FIX_TIME") | (Tariff.name == "TOU")
+            ).first()
 
-            offPeakRateDsc = tariff.tou_off_pk_rate_max - \
-                (tariff.tou_off_pk_rate_max * tariff.dsc)
-            onPeakRateDsc = tariff.tou_on_pk_rate_max - \
-                (tariff.tou_on_pk_rate_max * tariff.dsc)
+            if not tariff:
+                raise Exception("Tariff data not found")
+
+            offPeakRateDsc = tariff.tou_off_pk_rate_max * (1 - tariff.dsc)
+            onPeakRateDsc = tariff.tou_on_pk_rate_max * (1 - tariff.dsc)
             revenue_on = (on_peak * onPeakRateDsc) + (on_peak * tariff.ft)
             revenue_off = (off_peak * offPeakRateDsc) + (off_peak * tariff.ft)
             revenue = revenue_on + revenue_off
 
+            on_date = yesterday.strftime('%Y-%m-%d')
+
             tou_exists = db.query(Tou).filter(
-                Tou.on_date == on_date,
-                Tou.station_code == station_code
-            ).first()
+                Tou.on_date == on_date, Tou.station_code == station_code).first()
             if not tou_exists:
                 tou_entry = Tou(on_date=on_date, yield_off_peak=off_peak, yield_on_peak=on_peak,
                                 yield_total=yield_total, revenue=revenue, station_code=station_code)
                 db.add(tou_entry)
                 db.commit()
-                logging.info(F"Tou fix time of {station_code}:{on_date} inserted or updated  successfully!")
+                logging.info(f"Tou fix time of {station_code}:{
+                    on_date} inserted or updated successfully!")
             else:
-                raise Exception(F"Tou fix time of {station_code}:{on_date} is exists")
+                raise Exception(f"Tou fix time of {station_code}:{
+                                on_date} already exists")
         except Exception as e:
             db.rollback()
             logging.error(f"Error: {e}")
@@ -192,20 +182,25 @@ class DatabaseHandle:
             t3 = int(yesterday.replace(
                 hour=23, minute=59, second=59).timestamp())
 
-            station_hour = db.query(StationHour.inverter_power).filter(
-                StationHour.station_code == station_code,
-                StationHour.collect_time.between(t0, t3)
-            ).all()
-            if not station_hour:
-                raise Exception("insert_tod yield_total not found")
-            
-            yield_total = (sum(item.inverter_power or 0 for item in station_hour))
+            def get_data(t_start, t_end):
+                return db.query(StationHour.inverter_power).filter(
+                    StationHour.station_code == station_code,
+                    StationHour.collect_time.between(t_start, t_end)
+                ).all()
 
+            station_hour = get_data(t0, t3)
+            if len(station_hour) != 24:
+                    raise Exception(
+                       f"Insert TOD: Cannot read 24 hours of data for station {station_code} on {yesterday.strftime('%d/%m/%Y')}.")
+
+
+            yield_total = (
+                sum(item.inverter_power or 0 for item in station_hour))
 
             tariff = db.query(Tariff.dsc, Tariff.ft, Tariff.tod_rate_min, Tariff.tod_rate_mid, Tariff.tod_rate_max) \
                 .filter(Tariff.name == "TOD") \
                 .first()
-            
+
             eRateMinDsc = round(tariff.tod_rate_min -
                                 (tariff.tod_rate_min * tariff.dsc), 4)
             eRateMidDsc = round(tariff.tod_rate_mid -
@@ -221,19 +216,25 @@ class DatabaseHandle:
 
             if yield_total <= 150:
                 eRateMinTotal = yield_total
-                eRateMinAmount = (eRateMinTotal * eRateMinDsc) + (eRateMinTotal * tariff.ft)
+                eRateMinAmount = (eRateMinTotal * eRateMinDsc) + \
+                    (eRateMinTotal * tariff.ft)
             elif 150 < yield_total <= 400:
                 eRateMinTotal = 150
                 eRateMidTotal = yield_total - 150
-                eRateMinAmount = (150 * eRateMidDsc) + (eRateMinTotal * tariff.ft)
-                eRateMidAmount = (eRateMidTotal * eRateMidDsc) + (eRateMidTotal * tariff.ft)
+                eRateMinAmount = (150 * eRateMidDsc) + \
+                    (eRateMinTotal * tariff.ft)
+                eRateMidAmount = (eRateMidTotal * eRateMidDsc) + \
+                    (eRateMidTotal * tariff.ft)
             elif yield_total > 400:
                 eRateMinTotal = 150
                 eRateMidTotal = 250
-                eRateMaxTotal = yield_total - 250 
-                eRateMinAmount = (eRateMinTotal * eRateMinDsc) + (eRateMinTotal * tariff.ft)
-                eRateMidAmount = (eRateMidTotal * eRateMidDsc) + (eRateMidTotal * tariff.ft)
-                eRateMaxAmount = (eRateMaxTotal * eRateMaxDsc) + (eRateMaxTotal * tariff.ft)
+                eRateMaxTotal = yield_total - 250
+                eRateMinAmount = (eRateMinTotal * eRateMinDsc) + \
+                    (eRateMinTotal * tariff.ft)
+                eRateMidAmount = (eRateMidTotal * eRateMidDsc) + \
+                    (eRateMidTotal * tariff.ft)
+                eRateMaxAmount = (eRateMaxTotal * eRateMaxDsc) + \
+                    (eRateMaxTotal * tariff.ft)
             revenue = eRateMinAmount + eRateMidAmount + eRateMaxAmount
             tod_exists = db.query(Tod).filter(
                 Tod.on_date == on_date,
@@ -241,12 +242,15 @@ class DatabaseHandle:
             ).first()
 
             if not tod_exists:
-                tod_entry = Tod(on_date=on_date, yield_total=yield_total ,revenue =revenue, station_code=station_code)
+                tod_entry = Tod(on_date=on_date, yield_total=yield_total,
+                                revenue=revenue, station_code=station_code)
                 db.add(tod_entry)
                 db.commit()
-                logging.info(F"Tod of {station_code}:{on_date} inserted or updated  successfully!")
+                logging.info(F"Tod of {station_code}:{
+                             on_date} inserted or updated  successfully!")
             else:
                 raise Exception(F"Tod of {station_code}:{on_date} is exists")
+            
         except Exception as e:
             db.rollback()
             logging.error(f"Error: {e}")

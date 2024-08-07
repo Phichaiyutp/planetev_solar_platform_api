@@ -249,7 +249,11 @@ class ApiHandle():
             api_login = requests.post(url_login, verify=False, json={"userName": os.getenv(
                 'FUSIONSOLAR_USER'), "systemCode": os.getenv('FUSIONSOLAR_PASS')})
             headers = api_login.headers
-            return headers.get("xsrf-token")
+            if headers.get("xsrf-token"):
+                return headers.get("xsrf-token")
+            else:
+                if api_login.text :
+                    raise Exception(f"Login Error:{api_login.text}")
         except Exception as e:
             logging.error(f"Requests API Token Error: {e}")
 
