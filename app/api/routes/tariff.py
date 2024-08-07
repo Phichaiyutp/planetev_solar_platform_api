@@ -30,13 +30,14 @@ async def setup_scheduler(db: Session):
 
 def tariff(device_list: dict, db: Session) -> dict:
     for index, element in enumerate(device_list):
+        job_id = f"job_{index}_{element['station_code']}"
         if element['tariff_type'] == "TOU_FIX_TIME":
             scheduler.add_job(
                 db_handle.insert_tou_fix_time,
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{index}_insert_tou_fix_time"
+                id=job_id
             )
         elif element['tariff_type'] == "TOU":
             scheduler.add_job(
@@ -44,7 +45,7 @@ def tariff(device_list: dict, db: Session) -> dict:
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{index}_insert_tou_fix_time"
+                id=job_id
             )
         elif element['tariff_type'] == "TOD":
             scheduler.add_job(
@@ -52,10 +53,10 @@ def tariff(device_list: dict, db: Session) -> dict:
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{index}_insert_tod"
+                id=job_id
             )
 
-@router.get("/time/travel")
+""" @router.get("/time/travel")
 async def toufix():
     try:
         db: Session = next(get_db())
@@ -73,4 +74,4 @@ async def toufix():
         return {}
     except Exception as e:
         logging.error(f"Error in /time/travel endpoint: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail="Internal Server Error") """

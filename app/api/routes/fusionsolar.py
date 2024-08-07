@@ -18,7 +18,7 @@ async def setup_scheduler(db: Session):
     scheduler.add_job(api_handle.KpiStationYear, 'interval', days=365, args=[db], id="job_KpiStationYear")
     scheduler.start()
 
-@router.get("/time/travel")
+""" @router.get("/time/travel")
 async def read_data():
     try:
         db: Session = next(get_db())
@@ -31,3 +31,4 @@ async def read_data():
         raise HTTPException(status_code=500, detail="Internal Server Error")
     finally:
         db.close()
+ """
