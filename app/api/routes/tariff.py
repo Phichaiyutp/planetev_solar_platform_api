@@ -29,14 +29,14 @@ async def setup_scheduler(db: Session):
     scheduler.start()
 
 def tariff(device_list: dict, db: Session) -> dict:
-    for element in device_list:
+    for index, element in enumerate(device_list):
         if element['tariff_type'] == "TOU_FIX_TIME":
             scheduler.add_job(
                 db_handle.insert_tou_fix_time,
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{element['station_code']}_insert_tou_fix_time"
+                id=f"job_{index}_insert_tou_fix_time"
             )
         elif element['tariff_type'] == "TOU":
             scheduler.add_job(
@@ -44,7 +44,7 @@ def tariff(device_list: dict, db: Session) -> dict:
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{element['station_code']}_insert_tou_fix_time"
+                id=f"job_{index}_insert_tou_fix_time"
             )
         elif element['tariff_type'] == "TOD":
             scheduler.add_job(
@@ -52,7 +52,7 @@ def tariff(device_list: dict, db: Session) -> dict:
                 trigger='interval',
                 days=1,
                 args=[db, element['station_code']],
-                id=f"job_{element['station_code']}_insert_tod"
+                id=f"job_{index}_insert_tod"
             )
 
 @router.get("/time/travel")
