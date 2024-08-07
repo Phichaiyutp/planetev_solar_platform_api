@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.tariff.db import DatabaseHandle
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import logging
 
 router = APIRouter()
 
@@ -25,10 +24,6 @@ scheduler = AsyncIOScheduler()
 
 async def setup_scheduler(db: Session):
     device_list = db_handle.get_device(db)
-    tariff(device_list, db)
-    scheduler.start()
-
-def tariff(device_list: dict, db: Session) -> dict:
     for index, element in enumerate(device_list):
         job_id = f"job_{index}_{element['station_code']}"
         if element['tariff_type'] == "TOU_FIX_TIME":
@@ -55,7 +50,8 @@ def tariff(device_list: dict, db: Session) -> dict:
                 args=[db, element['station_code']],
                 id=job_id
             )
-
+    scheduler.start()
+    
 """ @router.get("/time/travel")
 async def toufix():
     try:
