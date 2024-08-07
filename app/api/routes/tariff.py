@@ -23,7 +23,7 @@ time = {
 db_handle = DatabaseHandle()
 scheduler = AsyncIOScheduler()
 
-def setup_scheduler(db: Session):
+async def setup_scheduler(db: Session):
     device_list = db_handle.get_device(db)
     tariff(device_list, db)
     scheduler.start()
