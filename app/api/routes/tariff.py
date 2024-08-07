@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from app.core.db import get_db
@@ -26,12 +27,16 @@ async def setup_scheduler(db: Session):
     device_list = db_handle.get_device(db)
     for index, element in enumerate(device_list):
         job_id = f"job_{index}_{element['station_code']}"
+        args = [db, element['station_code']]
+        
+        logging.info(f"Scheduling job {job_id} with args: {args}")
+        
         if element['tariff_type'] == "TOU_FIX_TIME":
             scheduler.add_job(
                 db_handle.insert_tou_fix_time,
                 trigger='interval',
                 days=1,
-                args=[db, element['station_code']],
+                args=args,
                 id=job_id
             )
         elif element['tariff_type'] == "TOU":
@@ -39,7 +44,7 @@ async def setup_scheduler(db: Session):
                 db_handle.insert_tou_fix_time,
                 trigger='interval',
                 days=1,
-                args=[db, element['station_code']],
+                args=args,
                 id=job_id
             )
         elif element['tariff_type'] == "TOD":
@@ -47,7 +52,7 @@ async def setup_scheduler(db: Session):
                 db_handle.insert_tod,
                 trigger='interval',
                 days=1,
-                args=[db, element['station_code']],
+                args=args,
                 id=job_id
             )
     scheduler.start()
