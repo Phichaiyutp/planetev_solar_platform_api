@@ -4,16 +4,15 @@ from app.core.db import get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from app.api.routes import backend_api, tariff, report, fusionsolar ,auth ,scheduler
+from app.api.routes import backend_api, tariff, report, fusionsolar ,auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db: Session = next(get_db())
-    await fusionsolar.scheduler_callback(db)
-    await tariff.scheduler_callback(db)
-    await scheduler.scheduler_callback(db)
-    yield 
-    db.close() 
+    await fusionsolar.setup_scheduler(db)
+    await tariff.setup_scheduler(db)
+    yield
+    db.close()
 
 app = FastAPI(lifespan=lifespan)
 
